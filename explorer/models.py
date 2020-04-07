@@ -2,9 +2,10 @@ from __future__ import unicode_literals
 
 import logging
 from time import time
+import uuid
 import six
 
-from django.db import models, DatabaseError
+from django.db import models, DatabaseError, transaction
 try:
     from django.urls import reverse
 except ImportError:
@@ -152,25 +153,31 @@ class QueryLog(models.Model):
 
 class QueryResult(object):
 
-    def __init__(self, sql, connection):
-
+    def __init__(self, sql, connection, limit=app_settings.EXPLORER_DEFAULT_ROWS):
         self.sql = sql
         self.connection = connection
+        self.limit = limit
+        self._row_count = None
 
-        cursor, duration = self.execute_query()
-
-        self._description = cursor.description or []
-        self._data = [list(r) for r in cursor.fetchall()]
-        self.duration = duration
-
-        cursor.close()
-
-        self._headers = self._get_headers()
+    def _process(self):
+        with transaction.atomic(), self.connection.cursor() as cursor:
+            sql_query = SQLQuery(cursor, self.sql, self.limit)
+            self._data = sql_query.get_results()
+            self._description = sql_query.description
+            self.duration = sql_query.duration
+            self._headers = self._get_headers()
+            self._row_count = sql_query.count
         self._summary = {}
 
     @property
     def data(self):
         return self._data or []
+
+    @property
+    def row_count(self):
+        if self._row_count is None:
+            return len(self.data)
+        return self._row_count
 
     @property
     def headers(self):
@@ -198,10 +205,9 @@ class QueryResult(object):
 
     def process(self):
         start_time = time()
-
+        self._process()
         self.process_columns()
         self.process_rows()
-
         logger.info("Explorer Query Processing took %sms." % ((time() - start_time) * 1000))
 
     def process_columns(self):
@@ -215,17 +221,51 @@ class QueryResult(object):
                 for ix, t in transforms:
                     r[ix] = t.format(str(r[ix]))
 
-    def execute_query(self):
-        cursor = self.connection.cursor()
+
+class SQLQuery(object):
+
+    def __init__(self, cursor, sql, limit):
+        self.sql = sql
+        self.cursor = cursor
+        self.duration = 0
+        self.limit = limit
+        self._cursor_name = None
+        self._count = 0
+        self._description = None
+
+    @property
+    def count(self):
+        return 11
+        if not self._count:
+            self.cursor.execute(f'select count(*) from ({self.sql}) t')
+            self._count = self.cursor.fetchone()[0]
+        return self._count
+
+    def execute(self):
         start_time = time()
-
         try:
-            cursor.execute(self.sql)
+            self.cursor.execute(f'DECLARE {self.cursor_name} CURSOR WITH HOLD FOR {self.sql}')
+            self.cursor.execute(f'FETCH {self.limit} FROM {self.cursor_name}')
         except DatabaseError as e:
-            cursor.close()
             raise e
+        self.duration = (time() - start_time) * 1000
 
-        return cursor, ((time() - start_time) * 1000)
+    def get_results(self):
+        self.execute()
+        self._description = self.cursor.description or []
+        results = [list(r) for r in self.cursor]
+        self.cursor.execute(f'CLOSE {self.cursor_name}')
+        return results
+
+    @property
+    def cursor_name(self):
+        if not self._cursor_name:
+            self._cursor_name = 'cur_%s' % str(uuid.uuid4()).replace('-', '')[:10]
+        return self._cursor_name
+
+    @property
+    def description(self):
+        return self._description
 
 
 @six.python_2_unicode_compatible
