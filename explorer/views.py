@@ -8,6 +8,7 @@ except ImportError:
     from django.core.urlresolvers import reverse_lazy
 
 import django
+from django.core.cache import cache
 from django.db import DatabaseError
 from django.db.models import Count
 from django.forms.models import model_to_dict
@@ -16,7 +17,7 @@ from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_POST
 from django.utils.decorators import method_decorator
 from django.views.generic import ListView
-from django.views.generic.base import View
+from django.views.generic.base import TemplateView, View
 from django.views.generic.edit import CreateView, DeleteView
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.core.exceptions import ImproperlyConfigured
@@ -405,3 +406,18 @@ def query_viewmodel(user, query, title=None, form=None, message=None, run_query=
         'unsafe_rendering': app_settings.UNSAFE_RENDERING,
     }
     return ret
+
+
+class TableBrowser(PermissionRequiredMixin, ExplorerContextMixin, TemplateView):
+
+    permission_required = 'view_permission'
+    template_name = "browser/home.html"
+
+    def get_tables(self):
+        from .schema import build_schema_info, connection_schema_cache_key
+        return build_schema_info(app_settings.EXPLORER_DEFAULT_CONNECTION)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['tables'] = self.get_tables()
+        return context

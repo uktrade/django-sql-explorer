@@ -9,6 +9,7 @@
     {% endif %}
     {% if query %}<li class="active"><a href="">Query Detail</a></li>{% endif %}
     <li><a href="{% url "explorer_logs" %}">Logs</a></li>
+    <li><a href="{% url "table_browser" %}">Table browser</a></li>
 {% endblock %}
 
 {% block sql_explorer_content %}

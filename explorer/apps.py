@@ -1,5 +1,6 @@
 from django.apps import AppConfig
 from django.db import connections as djcs
+from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 
 

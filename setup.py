@@ -1,5 +1,5 @@
 import os
-from setuptools import setup
+from setuptools import setup, find_packages
 from explorer import __version__
 
 # Utility function to read the README file.
@@ -20,8 +20,8 @@ setup(
                  " view, and export the results."),
     license="MIT",
     keywords="django sql explorer reports reporting csv database query",
-    url="https://github.com/groveco/django-sql-explorer",
-    packages=['explorer'],
+    url="https://github.com/uktrade/django-sql-explorer",
+    packages=find_packages(),
     long_description=read('README.rst'),
     classifiers=[
         'Development Status :: 5 - Production/Stable',
@@ -45,6 +45,7 @@ setup(
         'sqlparse>=0.1.18',
         'unicodecsv>=0.14.1',
         'six>=1.10.0',
+        'django-dynamic-models @ git+ssh://git@github.com/abbas123456/django-dynamic-models@master#egg=abbas123456/django-dynamic-models',
     ],
     include_package_data=True,
     zip_safe=False,

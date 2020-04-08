@@ -12,6 +12,7 @@ from explorer.views import (
     EmailCsvQueryView,
     SchemaView,
     format_sql,
+    TableBrowser
 )
 
 urlpatterns = [
@@ -27,4 +28,5 @@ urlpatterns = [
     url(r'logs/$', ListQueryLogView.as_view(), name='explorer_logs'),
     url(r'format/$', format_sql, name='format_sql'),
     url(r'^$', ListQueryView.as_view(), name='explorer_index'),
+    url(r'browse/$', TableBrowser.as_view(), name='table_browser'),
 ]
