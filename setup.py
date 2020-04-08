@@ -45,7 +45,7 @@ setup(
         'sqlparse>=0.1.18',
         'unicodecsv>=0.14.1',
         'six>=1.10.0',
-        'django-dynamic-models @ git+ssh://git@github.com/abbas123456/django-dynamic-models@master#egg=abbas123456/django-dynamic-models',
+        'django-dynamic-models-readonly>=0.1.1',
     ],
     include_package_data=True,
     zip_safe=False,
