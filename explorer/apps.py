@@ -9,9 +9,9 @@ class ExplorerAppConfig(AppConfig):
     name = 'explorer'
 
     def ready(self):
-        from explorer.schema import build_async_schemas
+        from explorer.schema import build_schemas
         _validate_connections()
-        build_async_schemas()
+        build_schemas()
 
 
 def _get_default():

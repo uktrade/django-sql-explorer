@@ -46,6 +46,7 @@ setup(
         'unicodecsv>=0.14.1',
         'six>=1.10.0',
         'django-dynamic-models-readonly>=0.1.1',
+        'sqlalchemy>=1.3.15'
     ],
     include_package_data=True,
     zip_safe=False,

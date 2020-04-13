@@ -8,16 +8,9 @@ from django.conf import settings
 # }
 # EXPLORER_DEFAULT_CONNECTION = 'my_important_database_readonly_connection'
 
-def set_schema_search_path(connection):
-    db_settings = settings.DATABASES[connection]
-    db_settings['OPTIONS'] = {
-        'options': '-c search_path=public,workspace'
-    }
-    settings.DATABASES[connection] = db_settings
-    return connection
 
 EXPLORER_CONNECTIONS = getattr(settings, 'EXPLORER_CONNECTIONS', {})
-EXPLORER_DEFAULT_CONNECTION = set_schema_search_path(getattr(settings, 'EXPLORER_DEFAULT_CONNECTION', None))
+EXPLORER_DEFAULT_CONNECTION = getattr(settings, 'EXPLORER_DEFAULT_CONNECTION', None)
 
 
 # Change the behavior of explorer

@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.core.cache import cache
 from explorer.utils import get_valid_connection
 from explorer.tasks import build_schema_cache_async
@@ -7,8 +8,10 @@ from explorer.app_settings import (
     EXPLORER_SCHEMA_INCLUDE_VIEWS,
     ENABLE_TASKS,
     EXPLORER_ASYNC_SCHEMA,
-    EXPLORER_CONNECTIONS
+    EXPLORER_CONNECTIONS,
 )
+from sqlalchemy import create_engine
+from sqlalchemy.engine.reflection import Inspector
 
 
 # These wrappers make it easy to mock and test
@@ -39,17 +42,23 @@ def connection_schema_cache_key(connection_alias):
 
 
 def schema_info(connection_alias):
-    key = connection_schema_cache_key(connection_alias)
-    ret = cache.get(key)
-    if ret:
-        return ret
-    if do_async():
-        build_schema_cache_async.delay(connection_alias)
-    else:
-        return build_schema_cache_async(connection_alias)
+    return build_schema_info(connection_alias)
+
+
+def set_schema_search_path(connection):
+    db_settings = settings.DATABASES[connection]
+    engine = create_engine(f'postgresql://{db_settings["USER"]}:{db_settings["PASSWORD"]}@{db_settings["HOST"]}:{db_settings["PORT"]}/{db_settings["NAME"]}')
+    insp = Inspector.from_engine(engine)
+    schemas = [s for s in insp.get_schema_names() if s not in ['pg_toast', 'pg_temp_1', 'pg_toast_temp_1', 'pg_catalog', 'information_schema', 'public']]
+    db_settings['OPTIONS'] = {
+        'options': f'-c search_path=public,{",".join(schemas)}'
+    }
+    settings.DATABASES[connection] = db_settings
+    return connection
 
 
 def build_schema_info(connection_alias):
+    set_schema_search_path(connection_alias)
     """
         Construct schema information via engine-specific queries of the tables in the DB.
 
@@ -85,7 +94,6 @@ def build_schema_info(connection_alias):
     return ret
 
 
-def build_async_schemas():
-    if do_async():
-        for c in EXPLORER_CONNECTIONS:
-            schema_info(c)
+def build_schemas():
+    for c in EXPLORER_CONNECTIONS:
+        schema_info(c)
