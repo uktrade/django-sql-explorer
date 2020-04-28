@@ -4,7 +4,7 @@ from django.test import TestCase
 from django.db import connections
 from explorer.tests.factories import SimpleQueryFactory
 from explorer.models import QueryLog, Query, QueryResult, ColumnSummary, ColumnHeader
-from mock import patch, Mock
+from unittest.mock import patch, Mock
 from explorer.app_settings import EXPLORER_DEFAULT_CONNECTION as CONN
 
 
