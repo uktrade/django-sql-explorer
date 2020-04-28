@@ -8,6 +8,7 @@ except ImportError:
     from django.core.urlresolvers import reverse_lazy
 
 import django
+from django.core import serializers
 from django.core.cache import cache
 from django.db import DatabaseError
 from django.db.models import Count
@@ -28,7 +29,7 @@ from explorer import app_settings
 from explorer.connections import connections
 from explorer.exporters import get_exporter_class
 from explorer.forms import QueryForm
-from explorer.models import Query, QueryLog, MSG_FAILED_BLACKLIST
+from explorer.models import Query, QueryLog, MSG_FAILED_BLACKLIST, ModelSchema, FieldSchema
 from explorer.tasks import execute_query
 from explorer.utils import (
     url_get_rows,
@@ -408,12 +409,71 @@ def query_viewmodel(user, query, title=None, form=None, message=None, run_query=
     return ret
 
 
-class TableBrowser(PermissionRequiredMixin, ExplorerContextMixin, TemplateView):
+class TableBrowserListView(PermissionRequiredMixin, ExplorerContextMixin, TemplateView):
 
     permission_required = 'view_permission'
-    template_name = "browser/home.html"
+    template_name = "browser/list.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['tables'] = schema_info(app_settings.EXPLORER_DEFAULT_CONNECTION)
         return context
+
+
+class TableBrowserDetailView(PermissionRequiredMixin, ExplorerContextMixin, ListView):
+
+    permission_required = 'view_permission'
+    template_name = "browser/table.html"
+    column_mapping = {
+        'CharField': 'character',
+        'TextField': 'text',
+        'IntegerField': 'integer',
+        'FloatField': 'float',
+        'BooleanField': 'boolean',
+        'DateField': 'date',
+        'TimestampField': 'date'
+    }
+
+    def get_model(self):
+        schema = self.kwargs['schema']
+        table = self.kwargs['table']
+
+        columns = schema_info(app_settings.EXPLORER_DEFAULT_CONNECTION, schema, table)
+        table_name = f'{schema}.{table}'
+
+        try:
+            model = ModelSchema.objects.get(name=table_name)
+        except ModelSchema.DoesNotExist:
+            model = ModelSchema.objects.create(name=table_name)
+
+        for column in columns:
+            if column.name == 'id':
+                continue
+            try:
+                field = FieldSchema.objects.get(name=column.name)
+            except FieldSchema.DoesNotExist:
+                field = FieldSchema.objects.create(
+                    name=column.name, data_type=self.column_mapping[column.type]
+                )
+
+            try:
+                model.add_field(field)
+            except:
+                pass
+
+        Model = model.as_model()
+        if '"' not in Model._meta.db_table:
+            Model._meta.db_table = Model._meta.db_table.replace('explorer_', '').replace(schema, f'{schema}"."')
+
+        return Model
+
+    def get_queryset(self):
+        Model = self.get_model()
+        return Model.objects.all()
+
+    def get_context_data(self, **kwargs):
+        ctx = super(TableBrowserDetailView, self).get_context_data(**kwargs)
+        ctx['model_name'] = self.kwargs['table']
+        ctx['fields'] = [field.name for field in self.get_model()._meta.get_fields() if field.name != 'id']
+        ctx['objects'] = serializers.serialize('python', self.get_queryset())
+        return ctx

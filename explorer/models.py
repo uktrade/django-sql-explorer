@@ -11,6 +11,7 @@ except ImportError:
     from django.core.urlresolvers import reverse
 
 from django.conf import settings
+from dynamic_models.models import AbstractFieldSchema, AbstractModelSchema
 
 from explorer import app_settings
 from explorer.utils import (
@@ -283,3 +284,11 @@ class ColumnSummary(object):
 
     def __str__(self):
         return str(self._header)
+
+
+class ModelSchema(AbstractModelSchema):
+    pass
+
+
+class FieldSchema(AbstractFieldSchema):
+    pass

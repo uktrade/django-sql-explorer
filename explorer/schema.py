@@ -42,8 +42,8 @@ def connection_schema_cache_key(connection_alias):
     return '_explorer_cache_key_%s' % connection_alias
 
 
-def schema_info(connection_alias):
-    return build_schema_info(connection_alias)
+def schema_info(connection_alias, schema=None, table=None):
+    return build_schema_info(connection_alias, schema, table)
 
 
 COLUMN_MAPPING = {
@@ -67,7 +67,7 @@ class TableName(namedtuple("TableName", ['schema', 'name'])):
         return f'{self.schema}.{self.name}'
 
 
-def build_schema_info(connection_alias):
+def build_schema_info(connection_alias, schema=None, table=None):
     """
         Construct schema information via engine-specific queries of the tables in the DB.
 
@@ -91,17 +91,25 @@ def build_schema_info(connection_alias):
     }
     settings.DATABASES[connection_alias] = db_settings
 
+    if schema and table:
+        return _get_columns_for_table(insp, schema, table)
+
     tables = []
     for schema in schemas:
         for table_name in insp.get_table_names(schema=schema):
             if not _include_table(table_name):
                 continue
-            columns = []
-            cols = insp.get_columns(table_name, schema=schema)
-            for col in cols:
-                columns.append(Column(col['name'], COLUMN_MAPPING[type(col['type'])]))
+            columns = _get_columns_for_table(insp, schema, table_name)
             tables.append(Table(TableName(schema, table_name), columns))
     return tables
+
+
+def _get_columns_for_table(insp, schema, table_name):
+    columns = []
+    cols = insp.get_columns(table_name, schema=schema)
+    for col in cols:
+        columns.append(Column(col['name'], COLUMN_MAPPING[type(col['type'])]))
+    return columns
 
 
 def build_schemas():
