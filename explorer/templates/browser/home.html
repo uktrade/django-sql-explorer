@@ -17,13 +17,14 @@
             <tr>
                 <th>Schema</th>
                 <th>Name</th>
+                <th></th>
             </tr>
         </thead>
         <tbody>
-            {% for table,columns in tables %}
+            {% for table in tables %}
             <tr>
-                <td></td>
-                <td>{{ table }}</td>
+                <td>{{ table.name.schema }}</td>
+                <td>{{ table.name.name }}</td>
                 <td><a href="">Explore</a></td>
             </tr>
             {% endfor %}

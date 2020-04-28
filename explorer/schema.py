@@ -1,17 +1,18 @@
+from collections import namedtuple
+
 from django.conf import settings
-from django.core.cache import cache
-from explorer.utils import get_valid_connection
-from explorer.tasks import build_schema_cache_async
+from sqlalchemy import create_engine
+from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy.sql.sqltypes import BOOLEAN, DATE, FLOAT, INTEGER, TEXT, TIMESTAMP, VARCHAR
+
 from explorer.app_settings import (
-    EXPLORER_SCHEMA_INCLUDE_TABLE_PREFIXES,
-    EXPLORER_SCHEMA_EXCLUDE_TABLE_PREFIXES,
-    EXPLORER_SCHEMA_INCLUDE_VIEWS,
     ENABLE_TASKS,
     EXPLORER_ASYNC_SCHEMA,
     EXPLORER_CONNECTIONS,
+    EXPLORER_SCHEMA_EXCLUDE_TABLE_PREFIXES,
+    EXPLORER_SCHEMA_INCLUDE_TABLE_PREFIXES,
+    EXPLORER_SCHEMA_INCLUDE_VIEWS,
 )
-from sqlalchemy import create_engine
-from sqlalchemy.engine.reflection import Inspector
 
 
 # These wrappers make it easy to mock and test
@@ -45,20 +46,28 @@ def schema_info(connection_alias):
     return build_schema_info(connection_alias)
 
 
-def set_schema_search_path(connection):
-    db_settings = settings.DATABASES[connection]
-    engine = create_engine(f'postgresql://{db_settings["USER"]}:{db_settings["PASSWORD"]}@{db_settings["HOST"]}:{db_settings["PORT"]}/{db_settings["NAME"]}')
-    insp = Inspector.from_engine(engine)
-    schemas = [s for s in insp.get_schema_names() if s not in ['pg_toast', 'pg_temp_1', 'pg_toast_temp_1', 'pg_catalog', 'information_schema', 'public']]
-    db_settings['OPTIONS'] = {
-        'options': f'-c search_path=public,{",".join(schemas)}'
-    }
-    settings.DATABASES[connection] = db_settings
-    return connection
+COLUMN_MAPPING = {
+    VARCHAR: 'CharField',
+    TEXT: 'TextField',
+    INTEGER: 'IntegerField',
+    FLOAT: 'FloatField',
+    BOOLEAN: 'BooleanField',
+    DATE: 'DateField',
+    TIMESTAMP: 'TimestampField'
+}
+
+Column = namedtuple('Column', ['name', 'type'])
+Table = namedtuple('Table', ['name', 'columns'])
+
+
+class TableName(namedtuple("TableName", ['schema', 'name'])):
+    __slots__ = ()
+
+    def __str__(self):
+        return f'{self.schema}.{self.name}'
 
 
 def build_schema_info(connection_alias):
-    set_schema_search_path(connection_alias)
     """
         Construct schema information via engine-specific queries of the tables in the DB.
 
@@ -73,25 +82,26 @@ def build_schema_info(connection_alias):
             ]
 
         """
-    connection = get_valid_connection(connection_alias)
-    ret = []
-    with connection.cursor() as cursor:
-        tables_to_introspect = connection.introspection.table_names(cursor, include_views=_include_views())
+    db_settings = settings.DATABASES[connection_alias]
+    engine = create_engine(f'postgresql://{db_settings["USER"]}:{db_settings["PASSWORD"]}@{db_settings["HOST"]}:{db_settings["PORT"]}/{db_settings["NAME"]}')
+    insp = Inspector.from_engine(engine)
+    schemas = [s for s in insp.get_schema_names() if s not in ['pg_toast', 'pg_temp_1', 'pg_toast_temp_1', 'pg_catalog', 'information_schema', 'public']]
+    db_settings['OPTIONS'] = {
+        'options': f'-c search_path=public,{",".join(schemas)}'
+    }
+    settings.DATABASES[connection_alias] = db_settings
 
-        for table_name in tables_to_introspect:
+    tables = []
+    for schema in schemas:
+        for table_name in insp.get_table_names(schema=schema):
             if not _include_table(table_name):
                 continue
-            td = []
-            table_description = connection.introspection.get_table_description(cursor, table_name)
-            for row in table_description:
-                column_name = row[0]
-                try:
-                    field_type = connection.introspection.get_field_type(row[1], row)
-                except KeyError as e:
-                    field_type = 'Unknown'
-                td.append((column_name, field_type))
-            ret.append((table_name, td))
-    return ret
+            columns = []
+            cols = insp.get_columns(table_name, schema=schema)
+            for col in cols:
+                columns.append(Column(col['name'], COLUMN_MAPPING[type(col['type'])]))
+            tables.append(Table(TableName(schema, table_name), columns))
+    return tables
 
 
 def build_schemas():

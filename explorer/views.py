@@ -413,11 +413,7 @@ class TableBrowser(PermissionRequiredMixin, ExplorerContextMixin, TemplateView):
     permission_required = 'view_permission'
     template_name = "browser/home.html"
 
-    def get_tables(self):
-        from .schema import build_schema_info
-        return build_schema_info(app_settings.EXPLORER_DEFAULT_CONNECTION)
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['tables'] = self.get_tables()
+        context['tables'] = schema_info(app_settings.EXPLORER_DEFAULT_CONNECTION)
         return context
