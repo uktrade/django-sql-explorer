@@ -4,3 +4,4 @@ sqlparse==0.3.0
 unicodecsv==0.14.1
 xlsxwriter==1.2.8
 django-celery==3.3.1
+factory-boy==2.12.0
