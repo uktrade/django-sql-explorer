@@ -469,7 +469,7 @@ class TableBrowserDetailView(PermissionRequiredMixin, ExplorerContextMixin, List
 
     def get_queryset(self):
         Model = self.get_model()
-        return Model.objects.all()
+        return Model.objects.all()[:app_settings.TABLE_BROWSER_LIMIT]
 
     def get_context_data(self, **kwargs):
         ctx = super(TableBrowserDetailView, self).get_context_data(**kwargs)

@@ -72,3 +72,5 @@ S3_BUCKET = getattr(settings, "EXPLORER_S3_BUCKET", None)
 FROM_EMAIL = getattr(settings, 'EXPLORER_FROM_EMAIL', 'django-sql-explorer@example.com')
 
 UNSAFE_RENDERING = getattr(settings, "EXPLORER_UNSAFE_RENDERING", False)
+
+TABLE_BROWSER_LIMIT = getattr(settings, "EXPLORER_TABLE_BROWSER_LIMIT", 20)
