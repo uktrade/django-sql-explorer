@@ -439,7 +439,7 @@ class TableBrowserDetailView(PermissionRequiredMixin, ExplorerContextMixin, List
         table = self.kwargs['table']
 
         columns = schema_info(app_settings.EXPLORER_DEFAULT_CONNECTION, schema, table)
-        table_name = f'{schema}.{table}'
+        table_name = f'"{schema}"."{table}"'
 
         try:
             model = ModelSchema.objects.get(name=table_name)
@@ -462,8 +462,7 @@ class TableBrowserDetailView(PermissionRequiredMixin, ExplorerContextMixin, List
                 pass
 
         Model = model.as_model()
-        if '"' not in Model._meta.db_table:
-            Model._meta.db_table = Model._meta.db_table.replace('explorer_', '').replace(schema, f'{schema}"."')
+        Model._meta.db_table = table_name
 
         return Model
 
