@@ -86,10 +86,6 @@ def build_schema_info(connection_alias, schema=None, table=None):
     engine = create_engine(f'postgresql://{db_settings["USER"]}:{db_settings["PASSWORD"]}@{db_settings["HOST"]}:{db_settings["PORT"]}/{db_settings["NAME"]}')
     insp = Inspector.from_engine(engine)
     schemas = [s for s in insp.get_schema_names() if s not in ['pg_toast', 'pg_temp_1', 'pg_toast_temp_1', 'pg_catalog', 'information_schema', 'public']]
-    db_settings['OPTIONS'] = {
-        'options': f'-c search_path=public,{",".join(schemas)}'
-    }
-    settings.DATABASES[connection_alias] = db_settings
 
     if schema and table:
         return _get_columns_for_table(insp, schema, table)
