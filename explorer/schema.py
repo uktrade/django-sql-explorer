@@ -113,7 +113,10 @@ def _get_columns_for_table(insp, schema, table_name):
     columns = []
     cols = insp.get_columns(table_name, schema=schema)
     for col in cols:
-        columns.append(Column(col['name'], COLUMN_MAPPING[type(col['type'])]))
+        try:
+            columns.append(Column(col['name'], COLUMN_MAPPING[type(col['type'])]))
+        except KeyError:
+            continue
     return columns
 
 
