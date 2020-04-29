@@ -1,6 +1,5 @@
 [flake8]
 application-import-names=explorer
-application-package-names=authbroker_client
 exclude =
     venv,
     .venv

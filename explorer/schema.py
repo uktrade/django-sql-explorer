@@ -1,9 +1,9 @@
 from collections import namedtuple
 
-from django.conf import settings
 from sqlalchemy import create_engine
+from sqlalchemy.dialects.postgresql.base import DOUBLE_PRECISION, ENUM, TIMESTAMP
 from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.sql.sqltypes import BOOLEAN, DATE, FLOAT, INTEGER, TEXT, TIMESTAMP, VARCHAR
+from sqlalchemy.sql.sqltypes import BOOLEAN, DATE, FLOAT, INTEGER, NUMERIC, SMALLINT, TEXT, VARCHAR
 
 from explorer.app_settings import (
     ENABLE_TASKS,
@@ -13,6 +13,8 @@ from explorer.app_settings import (
     EXPLORER_SCHEMA_INCLUDE_TABLE_PREFIXES,
     EXPLORER_SCHEMA_INCLUDE_VIEWS,
 )
+from explorer.tasks import build_schema_cache_async
+from explorer.utils import get_valid_connection
 
 
 # These wrappers make it easy to mock and test
@@ -43,13 +45,20 @@ def connection_schema_cache_key(connection_alias):
 
 
 def schema_info(connection_alias, schema=None, table=None):
-    return build_schema_info(connection_alias, schema, table)
+    if do_async():
+        build_schema_cache_async.delay(connection_alias, schema, table)
+    else:
+        return build_schema_cache_async(connection_alias, schema, table)
 
 
 COLUMN_MAPPING = {
+    ENUM: 'Charfield',
     VARCHAR: 'CharField',
     TEXT: 'TextField',
     INTEGER: 'IntegerField',
+    SMALLINT: 'IntegerField',
+    NUMERIC: 'IntegerField',
+    DOUBLE_PRECISION: 'FloatField',
     FLOAT: 'FloatField',
     BOOLEAN: 'BooleanField',
     DATE: 'DateField',
@@ -71,9 +80,9 @@ def build_schema_info(connection_alias, schema=None, table=None):
     """
         Construct schema information via engine-specific queries of the tables in the DB.
 
-        :return: Schema information of the following form, sorted by db_table_name.
+        :return: Schema information of the following form.
             [
-                ("db_table_name",
+                (("db_schema_name", "db_table_name"),
                     [
                         ("db_column_name", "DbFieldType"),
                         (...),
@@ -82,10 +91,10 @@ def build_schema_info(connection_alias, schema=None, table=None):
             ]
 
         """
-    db_settings = settings.DATABASES[connection_alias]
-    engine = create_engine(f'postgresql://{db_settings["USER"]}:{db_settings["PASSWORD"]}@{db_settings["HOST"]}:{db_settings["PORT"]}/{db_settings["NAME"]}')
+    connection = get_valid_connection(connection_alias)
+    engine = create_engine(f'postgresql://{connection.settings_dict["USER"]}:{connection.settings_dict["PASSWORD"]}@{connection.settings_dict["HOST"]}:{connection.settings_dict["PORT"]}/{connection.settings_dict["NAME"]}')
     insp = Inspector.from_engine(engine)
-    schemas = [s for s in insp.get_schema_names() if s not in ['pg_toast', 'pg_temp_1', 'pg_toast_temp_1', 'pg_catalog', 'information_schema', 'public']]
+    schemas = [s for s in insp.get_schema_names() if s not in ['pg_toast', 'pg_temp_1', 'pg_toast_temp_1', 'pg_catalog', 'information_schema']]
 
     if schema and table:
         return _get_columns_for_table(insp, schema, table)
@@ -108,6 +117,7 @@ def _get_columns_for_table(insp, schema, table_name):
     return columns
 
 
-def build_schemas():
-    for c in EXPLORER_CONNECTIONS:
-        schema_info(c)
+def build_async_schemas():
+    if do_async():
+        for c in EXPLORER_CONNECTIONS:
+            schema_info(c)

@@ -287,8 +287,9 @@ class ColumnSummary(object):
 
 
 class ModelSchema(AbstractModelSchema):
-    pass
+    name = models.CharField(max_length=256, unique=True)
 
 
 class FieldSchema(AbstractFieldSchema):
-    pass
+    name = models.CharField(max_length=256, unique=True)
+

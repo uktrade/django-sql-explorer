@@ -1,6 +1,5 @@
 from django.apps import AppConfig
 from django.db import connections as djcs
-from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 
 
@@ -9,9 +8,9 @@ class ExplorerAppConfig(AppConfig):
     name = 'explorer'
 
     def ready(self):
-        from explorer.schema import build_schemas
+        from explorer.schema import build_async_schemas
         _validate_connections()
-        build_schemas()
+        build_async_schemas()
 
 
 def _get_default():

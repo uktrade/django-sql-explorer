@@ -8,10 +8,8 @@ from django.conf import settings
 # }
 # EXPLORER_DEFAULT_CONNECTION = 'my_important_database_readonly_connection'
 
-
 EXPLORER_CONNECTIONS = getattr(settings, 'EXPLORER_CONNECTIONS', {})
 EXPLORER_DEFAULT_CONNECTION = getattr(settings, 'EXPLORER_DEFAULT_CONNECTION', None)
-
 
 # Change the behavior of explorer
 EXPLORER_SQL_BLACKLIST = getattr(settings, 'EXPLORER_SQL_BLACKLIST', ('ALTER',
@@ -33,19 +31,13 @@ EXPLORER_SQL_WHITELIST = getattr(settings, 'EXPLORER_SQL_WHITELIST', ('CREATED',
 
 EXPLORER_DEFAULT_ROWS = getattr(settings, 'EXPLORER_DEFAULT_ROWS', 1000)
 
-exclude_list = ('auth_',
-                'contenttypes_',
-                'sessions_',
-                'admin_',
-                'django_admin_log',
-                'django_content_type',
-                'django_migrations',
-                'django_session',
-                'dynamic_models_modelfieldschema',
-                'explorer_query',
-                'explorer_querylog'
-)
-EXPLORER_SCHEMA_EXCLUDE_TABLE_PREFIXES = getattr(settings, 'EXPLORER_SCHEMA_EXCLUDE_TABLE_PREFIXES', exclude_list)
+EXPLORER_SCHEMA_EXCLUDE_TABLE_PREFIXES = getattr(settings, 'EXPLORER_SCHEMA_EXCLUDE_TABLE_PREFIXES', ('auth_',
+                                                                                                      'contenttypes_',
+                                                                                                      'sessions_',
+                                                                                                      'admin_',
+                                                                                                      'explorer_',
+                                                                                                      'django',
+                                                                                                      'dynamic_models',))
 
 EXPLORER_SCHEMA_INCLUDE_TABLE_PREFIXES = getattr(settings, 'EXPLORER_SCHEMA_INCLUDE_TABLE_PREFIXES', None)
 EXPLORER_SCHEMA_INCLUDE_VIEWS = getattr(settings, 'EXPLORER_SCHEMA_INCLUDE_VIEWS', False)
