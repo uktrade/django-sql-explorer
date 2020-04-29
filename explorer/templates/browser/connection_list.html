@@ -10,26 +10,25 @@
 {% endblock %}
 
 {% block sql_explorer_content %}
-<h3>{{ model_name }}</h3>
+<h3>All connections</h3>
 <div class="table-responsive">
     <table class="table table-striped query-list">
         <thead>
             <tr>
-                {% for field in fields %}
-                  <th>{{ field }}</th>
-                {% endfor %}
+                <th>Name</th>
+                <th></th>
             </tr>
         </thead>
         <tbody>
-          {% for object in objects %}
+            {% for alias, connection in connections.items %}
             <tr>
-                {% for field, value in object.fields.items %}
-                  <th>{{ value }}</th>
-                {% endfor %}
+                <td>{{ alias }}</td>
+                <td><a href="{% url "table_browser_list" connection=connection %}">Connect</a></td>
             </tr>
             {% endfor %}
-
         </tbody>
     </table>
 </div>
+
+
 {% endblock %}

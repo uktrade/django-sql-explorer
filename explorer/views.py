@@ -409,14 +409,26 @@ def query_viewmodel(user, query, title=None, form=None, message=None, run_query=
     return ret
 
 
-class TableBrowserListView(PermissionRequiredMixin, ExplorerContextMixin, TemplateView):
-
+class ConnectionBrowserListView(PermissionRequiredMixin, ExplorerContextMixin, TemplateView):
     permission_required = 'view_permission'
-    template_name = "browser/list.html"
+    template_name = "browser/connection_list.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['tables'] = schema_info(app_settings.EXPLORER_DEFAULT_CONNECTION)
+        context['connections'] = app_settings.EXPLORER_CONNECTIONS
+        return context
+
+
+class TableBrowserListView(PermissionRequiredMixin, ExplorerContextMixin, TemplateView):
+
+    permission_required = 'view_permission'
+    template_name = "browser/table_list.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        connection = self.kwargs['connection']
+        context['tables'] = schema_info(connection)
+        context['connection'] = connection
         return context
 
 
@@ -438,7 +450,7 @@ class TableBrowserDetailView(PermissionRequiredMixin, ExplorerContextMixin, List
         schema = self.kwargs['schema']
         table = self.kwargs['table']
 
-        columns = schema_info(app_settings.EXPLORER_DEFAULT_CONNECTION, schema, table)
+        columns = schema_info(self.kwargs['connection'], schema, table)
         table_name = f'"{schema}"."{table}"'
 
         try:
@@ -462,6 +474,7 @@ class TableBrowserDetailView(PermissionRequiredMixin, ExplorerContextMixin, List
                 pass
 
         Model = model.as_model()
+        Model.objects = Model.objects.using(self.kwargs['connection'])
         Model._meta.db_table = table_name
 
         return Model

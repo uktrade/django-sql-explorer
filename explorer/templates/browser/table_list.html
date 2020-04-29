@@ -5,7 +5,7 @@
       <li><a href="{% url "query_create" %}">New Query</a></li>
       <li><a href="{% url "explorer_playground" %}">Playground</a></li>
       <li><a href="{% url "explorer_logs" %}">Logs</a></li>
-      <li class="active"><a href="{% url "table_browser_list" %}">Table browser</a></li>
+      <li class="active"><a href="{% url "connection_browser_list" %}">Table browser</a></li>
     {% endif %}
 {% endblock %}
 
@@ -25,7 +25,7 @@
             <tr>
                 <td>{{ table.name.schema }}</td>
                 <td>{{ table.name.name }}</td>
-                <td><a href="{% url "table_browser_detail" schema=table.name.schema table=table.name.name %}">Explore</a></td>
+                <td><a href="{% url "table_browser_detail" connection=connection schema=table.name.schema table=table.name.name %}">Explore</a></td>
             </tr>
             {% endfor %}
         </tbody>
