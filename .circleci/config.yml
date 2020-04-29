@@ -5,10 +5,17 @@ job_defaults: &job_defaults
     python_image:
       type: string
 
+    postgres_image:
+      type: string
+
+  environment:
+    DJANGO_SQL_EXPLORER_DATABASE_URL: postgresql://postgres@localhost/postgres
+
   working_directory: ~/app
 
   docker:
     - image: <<parameters.python_image>>
+    - image: <<parameters.postgres_image>>
 
   steps:
     - checkout
@@ -44,3 +51,4 @@ workflows:
     jobs:
       - build:
           python_image: python:3.6.8
+          postgres_image: postgres:10.5

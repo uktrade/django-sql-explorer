@@ -184,9 +184,7 @@ class QueryResult(object):
         return [ColumnHeader(d[0]) for d in self._description] if self._description else [ColumnHeader('--')]
 
     def _get_numerics(self):
-        if hasattr(self.connection.Database, "NUMBER"):
-            return [ix for ix, c in enumerate(self._description) if hasattr(c, 'type_code') and c.type_code in self.connection.Database.NUMBER.values]
-        elif self.data:
+        if self.data:
             d = self.data[0]
             return [ix for ix, _ in enumerate(self._description) if not isinstance(d[ix], six.string_types) and six.text_type(d[ix]).isnumeric()]
         return []
