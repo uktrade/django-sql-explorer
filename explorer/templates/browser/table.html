@@ -10,6 +10,7 @@
 {% endblock %}
 
 {% block sql_explorer_content %}
+<a href="{% url "table_browser_list" connection %}">Back to {{ connection }}</a>
 <h3>{{ model_name }}</h3>
 <div class="table-responsive">
     <table class="table table-striped query-list">
