@@ -5,7 +5,7 @@ from time import time
 import uuid
 import six
 
-from django.db import models, DatabaseError, transaction
+from django.db import models, DatabaseError
 try:
     from django.urls import reverse
 except ImportError:
@@ -25,7 +25,7 @@ from explorer.utils import (
 )
 
 MSG_FAILED_BLACKLIST = "Query failed the SQL blacklist: %s"
-
+POSTGRES_VENDOR = 'postgresql'
 
 logger = logging.getLogger(__name__)
 
@@ -158,16 +158,21 @@ class QueryResult(object):
         self.connection = connection
         self.limit = limit
         self._row_count = None
+        self._data = []
+        self._headers = []
+        self._summary = {}
+        self._description = None
+        self.duration = None
+        self.execute_query()
 
-    def _process(self):
-        with transaction.atomic(), self.connection.cursor() as cursor:
+    def execute_query(self):
+        with self.connection.cursor() as cursor:
             sql_query = SQLQuery(cursor, self.sql, self.limit)
             self._data = sql_query.get_results()
             self._description = sql_query.description
-            self.duration = sql_query.duration
             self._headers = self._get_headers()
             self._row_count = sql_query.count
-        self._summary = {}
+            self.duration = sql_query.duration
 
     @property
     def data(self):
@@ -205,7 +210,6 @@ class QueryResult(object):
 
     def process(self):
         start_time = time()
-        self._process()
         self.process_columns()
         self.process_rows()
         logger.info("Explorer Query Processing took %sms." % ((time() - start_time) * 1000))
@@ -235,8 +239,7 @@ class SQLQuery(object):
 
     @property
     def count(self):
-        return 11
-        if not self._count:
+        if not self._count and self.cursor.db.vendor == POSTGRES_VENDOR:
             self.cursor.execute(f'select count(*) from ({self.sql}) t')
             self._count = self.cursor.fetchone()[0]
         return self._count
@@ -244,17 +247,24 @@ class SQLQuery(object):
     def execute(self):
         start_time = time()
         try:
-            self.cursor.execute(f'DECLARE {self.cursor_name} CURSOR WITH HOLD FOR {self.sql}')
-            self.cursor.execute(f'FETCH {self.limit} FROM {self.cursor_name}')
+            self._execute()
         except DatabaseError as e:
             raise e
         self.duration = (time() - start_time) * 1000
+
+    def _execute(self):
+        if self.cursor.db.vendor == POSTGRES_VENDOR:
+            self.cursor.execute(f'DECLARE {self.cursor_name} CURSOR WITH HOLD FOR {self.sql}')
+            self.cursor.execute(f'FETCH {self.limit} FROM {self.cursor_name}')
+        else:
+            self.cursor.execute(self.sql)
 
     def get_results(self):
         self.execute()
         self._description = self.cursor.description or []
         results = [list(r) for r in self.cursor]
-        self.cursor.execute(f'CLOSE {self.cursor_name}')
+        if self.cursor.db.vendor == POSTGRES_VENDOR:
+            self.cursor.execute(f'CLOSE {self.cursor_name}')
         return results
 
     @property
