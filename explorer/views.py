@@ -397,7 +397,7 @@ def query_viewmodel(user, query, title=None, form=None, message=None, run_query=
         'rows': rows,
         'data': res.data[:rows] if has_valid_results else None,
         'headers': res.headers if has_valid_results else None,
-        'total_rows': len(res.data) if has_valid_results else None,
+        'total_rows': res.row_count if has_valid_results else None,
         'duration': res.duration if has_valid_results else None,
         'has_stats': len([h for h in res.headers if h.summary]) if has_valid_results else False,
         'snapshots': query.snapshots if query.snapshot else [],
