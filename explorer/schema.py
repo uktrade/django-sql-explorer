@@ -2,8 +2,8 @@ import logging
 from collections import namedtuple
 
 from sqlalchemy import create_engine
-from sqlalchemy.dialects.postgresql.base import DOUBLE_PRECISION, ENUM, TIMESTAMP, UUID
 from sqlalchemy.dialects.postgresql.array import ARRAY
+from sqlalchemy.dialects.postgresql.base import DOUBLE_PRECISION, ENUM, TIMESTAMP, UUID
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql.sqltypes import BOOLEAN, DATE, FLOAT, INTEGER, NUMERIC, SMALLINT, TEXT, VARCHAR
 
@@ -20,6 +20,7 @@ from explorer.utils import get_valid_connection
 
 
 logger = logging.getLogger(__name__)
+
 
 # These wrappers make it easy to mock and test
 def _get_includes():
@@ -68,7 +69,7 @@ COLUMN_MAPPING = {
     FLOAT: 'FloatField',
     BOOLEAN: 'BooleanField',
     DATE: 'DateField',
-    TIMESTAMP: 'TimestampField'
+    TIMESTAMP: 'TimestampField',
 }
 
 Column = namedtuple('Column', ['name', 'type'])
@@ -98,12 +99,20 @@ def build_schema_info(connection_alias, schema=None, table=None):
 
         """
     connection = get_valid_connection(connection_alias)
-    engine = create_engine(f'postgresql://{connection.settings_dict["USER"]}:{connection.settings_dict["PASSWORD"]}@{connection.settings_dict["HOST"]}:{connection.settings_dict["PORT"]}/{connection.settings_dict["NAME"]}')
+    engine = create_engine(
+        f'postgresql://{connection.settings_dict["USER"]}:{connection.settings_dict["PASSWORD"]}'
+        f'@{connection.settings_dict["HOST"]}:{connection.settings_dict["PORT"]}/'
+        f'{connection.settings_dict["NAME"]}'
+    )
     insp = Inspector.from_engine(engine)
     if schema and table:
         return _get_columns_for_table(insp, schema, table)
 
-    schemas = [s for s in insp.get_schema_names() if s not in ['pg_toast', 'pg_temp_1', 'pg_toast_temp_1', 'pg_catalog', 'information_schema']]
+    schemas = [
+        s
+        for s in insp.get_schema_names()
+        if s not in ['pg_toast', 'pg_temp_1', 'pg_toast_temp_1', 'pg_catalog', 'information_schema']
+    ]
     tables = []
     for schema in schemas:
         for table_name in insp.get_table_names(schema=schema):

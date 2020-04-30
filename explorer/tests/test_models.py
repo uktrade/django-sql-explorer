@@ -1,15 +1,15 @@
-import six
+from unittest.mock import Mock, patch
 
-from django.test import TestCase
+import six
 from django.db import connections
-from explorer.tests.factories import SimpleQueryFactory
-from explorer.models import QueryLog, Query, QueryResult, ColumnSummary, ColumnHeader
-from unittest.mock import patch, Mock
+from django.test import TestCase
+
 from explorer.app_settings import EXPLORER_DEFAULT_CONNECTION as CONN
+from explorer.models import ColumnHeader, ColumnSummary, Query, QueryLog, QueryResult
+from explorer.tests.factories import SimpleQueryFactory
 
 
 class TestQueryModel(TestCase):
-
     def test_params_get_merged(self):
         q = SimpleQueryFactory(sql="select '$$foo$$';")
         q.params = {'foo': 'bar', 'mux': 'qux'}
@@ -103,6 +103,7 @@ class TestQueryModel(TestCase):
 
     def test_cant_query_with_unregistered_connection(self):
         from explorer.utils import InvalidExplorerConnectionException
+
         q = SimpleQueryFactory(sql="select '$$foo:bar$$', '$$qux$$';", connection='not_registered')
         self.assertRaises(InvalidExplorerConnectionException, q.execute_query_only)
 
@@ -185,15 +186,14 @@ class TestPostgresQueryResults(_AbstractQueryResults, TestCase):
 
 
 class TestColumnSummary(TestCase):
-
     def test_executes(self):
         res = ColumnSummary('foo', [1, 2, 3])
         self.assertEqual(res.stats, {'Min': 1, 'Max': 3, 'Avg': 2, 'Sum': 6, 'NUL': 0})
 
     def test_handles_null_as_zero(self):
         res = ColumnSummary('foo', [1, None, 5])
-        self.assertEqual(res.stats, {'Min': 0, 'Max': 5, 'Avg': 2, 'Sum': 6,  'NUL': 1})
+        self.assertEqual(res.stats, {'Min': 0, 'Max': 5, 'Avg': 2, 'Sum': 6, 'NUL': 1})
 
     def test_empty_data(self):
         res = ColumnSummary('foo', [])
-        self.assertEqual(res.stats, {'Min': 0, 'Max': 0, 'Avg': 0, 'Sum': 0,  'NUL': 0})
+        self.assertEqual(res.stats, {'Min': 0, 'Max': 0, 'Avg': 0, 'Sum': 0, 'NUL': 0})

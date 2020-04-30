@@ -12,8 +12,6 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.AddField(
-            model_name='querylog',
-            name='duration',
-            field=models.FloatField(null=True, blank=True),
+            model_name='querylog', name='duration', field=models.FloatField(null=True, blank=True),
         ),
     ]

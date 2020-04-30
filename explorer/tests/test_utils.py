@@ -1,14 +1,23 @@
+from unittest.mock import Mock
+
 from django.test import TestCase
+
+from explorer import app_settings
 from explorer.actions import generate_report_action
 from explorer.tests.factories import SimpleQueryFactory
-from explorer import app_settings
-from explorer.utils import passes_blacklist, param, swap_params, extract_params,\
-    shared_dict_update, EXPLORER_PARAM_TOKEN, get_params_from_request, get_params_for_url
-from unittest.mock import Mock
+from explorer.utils import (
+    EXPLORER_PARAM_TOKEN,
+    extract_params,
+    get_params_for_url,
+    get_params_from_request,
+    param,
+    passes_blacklist,
+    shared_dict_update,
+    swap_params,
+)
 
 
 class TestSqlBlacklist(TestCase):
-
     def setUp(self):
         self.orig = app_settings.EXPLORER_SQL_BLACKLIST
         self.orig_wl = app_settings.EXPLORER_SQL_WHITELIST
@@ -21,13 +30,13 @@ class TestSqlBlacklist(TestCase):
         app_settings.EXPLORER_SQL_BLACKLIST = []
         r = SimpleQueryFactory(sql="SELECT 1+1 AS \"DELETE\";")
         fn = generate_report_action()
-        result = fn(None, None, [r, ])
+        result = fn(None, None, [r])
         self.assertEqual(result.content, b'DELETE\r\n2\r\n')
 
     def test_default_blacklist_prevents_deletes(self):
         r = SimpleQueryFactory(sql="SELECT 1+1 AS \"DELETE\";")
         fn = generate_report_action()
-        result = fn(None, None, [r, ])
+        result = fn(None, None, [r])
         self.assertEqual(result.content.decode('utf-8'), '0')
 
     def test_queries_deleting_stuff_are_not_ok(self):
@@ -49,7 +58,6 @@ class TestSqlBlacklist(TestCase):
 
 
 class TestParams(TestCase):
-
     def test_swappable_params_are_built_correctly(self):
         expected = EXPLORER_PARAM_TOKEN + 'foo' + EXPLORER_PARAM_TOKEN
         self.assertEqual(expected, param('foo'))
@@ -79,16 +87,16 @@ class TestParams(TestCase):
 
     def test_extracting_params(self):
         tests = [
-            ('please swap $$this0$$',                {'this0': ''}),
-            ('please swap $$THis0$$',                {'this0': ''}),
+            ('please swap $$this0$$', {'this0': ''}),
+            ('please swap $$THis0$$', {'this0': ''}),
             ('please swap $$this6$$ $$this6:that$$', {'this6': 'that'}),
-            ('please swap $$this_7:foo, bar$$',      {'this_7': 'foo, bar'}),
-            ('please swap $$this8:$$',               {}),
-            ('do nothing with $$this1 $$',           {}),
-            ('do nothing with $$this2 :$$',          {}),
-            ('do something with $$this3: $$',        {'this3': ' '}),
-            ('do nothing with $$this4: ',            {}),
-            ('do nothing with $$this5$that$$',       {}),
+            ('please swap $$this_7:foo, bar$$', {'this_7': 'foo, bar'}),
+            ('please swap $$this8:$$', {}),
+            ('do nothing with $$this1 $$', {}),
+            ('do nothing with $$this2 :$$', {}),
+            ('do something with $$this3: $$', {'this3': ' '}),
+            ('do nothing with $$this4: ', {}),
+            ('do nothing with $$this5$that$$', {}),
         ]
         for s in tests:
             self._assertSwap(s)
@@ -107,7 +115,8 @@ class TestParams(TestCase):
 
     def test_get_params_for_request(self):
         q = SimpleQueryFactory(params={'a': 1, 'b': 2})
-        # For some reason the order of the params is non-deterministic, causing the following to periodically fail:
+        # For some reason the order of the params is non-deterministic,
+        # causing the following to periodically fail:
         #     self.assertEqual(get_params_for_url(q), 'a:1|b:2')
         # So instead we go for the following, convoluted, asserts:
         res = get_params_for_url(q)
@@ -122,10 +131,10 @@ class TestParams(TestCase):
 
 
 class TestConnections(TestCase):
-
     def test_only_registered_connections_are_in_connections(self):
         from explorer.connections import connections
         from explorer.app_settings import EXPLORER_DEFAULT_CONNECTION
         from django.db import connections as djcs
+
         self.assertTrue(EXPLORER_DEFAULT_CONNECTION in connections)
         self.assertNotEqual(len(connections), len([c for c in djcs]))

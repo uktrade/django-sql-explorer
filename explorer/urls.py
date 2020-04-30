@@ -1,19 +1,20 @@
 from django.conf.urls import url
+
 from explorer.views import (
-    QueryView,
+    ConnectionBrowserListView,
     CreateQueryView,
-    PlayQueryView,
     DeleteQueryView,
-    ListQueryView,
-    ListQueryLogView,
     DownloadFromSqlView,
     DownloadQueryView,
-    StreamQueryView,
-    SchemaView,
     format_sql,
-    ConnectionBrowserListView,
+    ListQueryLogView,
+    ListQueryView,
+    PlayQueryView,
+    QueryView,
+    SchemaView,
+    StreamQueryView,
+    TableBrowserDetailView,
     TableBrowserListView,
-    TableBrowserDetailView
 )
 
 urlpatterns = [
@@ -30,5 +31,9 @@ urlpatterns = [
     url(r'^$', ListQueryView.as_view(), name='explorer_index'),
     url(r'browse/$', ConnectionBrowserListView.as_view(), name='connection_browser_list'),
     url(r'browse/(?P<connection>.+)/$', TableBrowserListView.as_view(), name='table_browser_list'),
-    url(r'browse/(?P<connection>.+)/(?P<schema>.+)/(?P<table>.+)$', TableBrowserDetailView.as_view(), name='table_browser_detail'),
+    url(
+        r'browse/(?P<connection>.+)/(?P<schema>.+)/(?P<table>.+)$',
+        TableBrowserDetailView.as_view(),
+        name='table_browser_detail',
+    ),
 ]

@@ -1,29 +1,29 @@
 import json
 import time
+from unittest.mock import Mock, patch
 
-import django
+from django.contrib.auth.models import User
+from django.core.cache import cache
+from django.db import connections
+from django.forms.models import model_to_dict
 from django.test import TestCase
+
 try:
     from django.urls import reverse
 except ImportError:
     from django.core.urlresolvers import reverse
 
-from django.contrib.auth.models import User
-from explorer.app_settings import EXPLORER_DEFAULT_CONNECTION as CONN
-from explorer.app_settings import EXPLORER_CONNECTIONS
-from django.forms.models import model_to_dict
-from django.db import connections
-
-from explorer.tests.factories import SimpleQueryFactory, QueryLogFactory
-from explorer.models import Query, QueryLog, MSG_FAILED_BLACKLIST
+from explorer.app_settings import (
+    EXPLORER_CONNECTIONS,
+    EXPLORER_DEFAULT_CONNECTION as CONN,
+    EXPLORER_TOKEN,
+)
+from explorer.models import MSG_FAILED_BLACKLIST, Query, QueryLog
+from explorer.tests.factories import QueryLogFactory, SimpleQueryFactory
 from explorer.utils import user_can_see_query
-from explorer.app_settings import EXPLORER_TOKEN
-from unittest.mock import Mock, patch
-from django.core.cache import cache
 
 
 class TestQueryListView(TestCase):
-
     def setUp(self):
         self.user = User.objects.create_superuser('admin', 'admin@admin.com', 'pwd')
         self.client.login(username='admin', password='pwd')
@@ -64,7 +64,6 @@ class TestQueryListView(TestCase):
 
 
 class TestQueryCreateView(TestCase):
-
     def setUp(self):
         self.admin = User.objects.create_superuser('admin', 'admin@admin.com', 'pwd')
         self.user = User.objects.create_user('user', 'user@user.com', 'pwd')
@@ -96,7 +95,9 @@ class TestQueryDetailView(TestCase):
 
     def test_query_with_bad_sql_renders_error_on_save(self):
         query = SimpleQueryFactory(sql="select 1;")
-        resp = self.client.post(reverse("query_detail", kwargs={'query_id': query.id}), data={'sql': 'error'})
+        resp = self.client.post(
+            reverse("query_detail", kwargs={'query_id': query.id}), data={'sql': 'error'}
+        )
         self.assertTemplateUsed(resp, 'explorer/query.html')
         self.assertContains(resp, "syntax error")
 
@@ -114,7 +115,9 @@ class TestQueryDetailView(TestCase):
         resp = self.client.get(reverse("query_detail", kwargs={'query_id': query.id}))
         self.assertTemplateUsed(resp, 'explorer/query.html')
 
-        self.client.post(reverse("query_detail", kwargs={'query_id': query.id}), {'sql': 'select 1;'})
+        self.client.post(
+            reverse("query_detail", kwargs={'query_id': query.id}), {'sql': 'select 1;'}
+        )
         self.assertEqual(Query.objects.get(pk=query.id).sql, expected)
 
     def test_modified_date_gets_updated_after_viewing_query(self):
@@ -132,7 +135,10 @@ class TestQueryDetailView(TestCase):
 
     def test_doesnt_render_results_if_show_is_none_on_post(self):
         query = SimpleQueryFactory(sql='select 6870+1;')
-        resp = self.client.post(reverse("query_detail", kwargs={'query_id': query.id}) + '?show=0', {'sql': 'select 6870+2;'})
+        resp = self.client.post(
+            reverse("query_detail", kwargs={'query_id': query.id}) + '?show=0',
+            {'sql': 'select 6870+2;'},
+        )
         self.assertTemplateUsed(resp, 'explorer/query.html')
         self.assertNotContains(resp, '6872')
 
@@ -160,7 +166,10 @@ class TestQueryDetailView(TestCase):
         query = SimpleQueryFactory(sql="select 123+1")
 
         with self.settings(EXPLORER_TOKEN_AUTH_ENABLED=True):
-            resp = self.client.get(reverse("query_detail", kwargs={'query_id': query.id}), **{'HTTP_X_API_TOKEN': EXPLORER_TOKEN})
+            resp = self.client.get(
+                reverse("query_detail", kwargs={'query_id': query.id}),
+                **{'HTTP_X_API_TOKEN': EXPLORER_TOKEN}
+            )
         self.assertTemplateUsed(resp, 'explorer/query.html')
         self.assertContains(resp, "124")
 
@@ -170,7 +179,10 @@ class TestQueryDetailView(TestCase):
         query = SimpleQueryFactory(sql="select 123+1")
 
         with self.settings(EXPLORER_TOKEN_AUTH_ENABLED=True):
-            resp = self.client.get(reverse("query_detail", kwargs={'query_id': query.id}) + '?token=%s' % EXPLORER_TOKEN)
+            resp = self.client.get(
+                reverse("query_detail", kwargs={'query_id': query.id})
+                + '?token=%s' % EXPLORER_TOKEN
+            )
         self.assertTemplateUsed(resp, 'explorer/query.html')
         self.assertContains(resp, "124")
 
@@ -214,7 +226,9 @@ class TestQueryDetailView(TestCase):
         conn = connections[CONN]
         start = len(conn.queries)
         query = SimpleQueryFactory(sql="select 1;")
-        resp = self.client.post(reverse("query_detail", kwargs={'query_id': query.id}), data={'sql': "select 'delete';"})
+        resp = self.client.post(
+            reverse("query_detail", kwargs={'query_id': query.id}), data={'sql': "select 'delete';"}
+        )
         end = len(conn.queries)
 
         self.assertTemplateUsed(resp, 'explorer/query.html')
@@ -224,7 +238,9 @@ class TestQueryDetailView(TestCase):
 
     def test_fullscreen(self):
         query = SimpleQueryFactory(sql="select 1;")
-        resp = self.client.get(reverse("query_detail", kwargs={'query_id': query.id}) + '?fullscreen=1')
+        resp = self.client.get(
+            reverse("query_detail", kwargs={'query_id': query.id}) + '?fullscreen=1'
+        )
         self.assertTemplateUsed(resp, 'explorer/fullscreen.html')
 
     def test_multiple_connections_integration(self):
@@ -311,7 +327,6 @@ class TestDownloadView(TestCase):
 
 
 class TestQueryPlayground(TestCase):
-
     def setUp(self):
         self.user = User.objects.create_superuser('admin', 'admin@admin.com', 'pwd')
         self.client.login(username='admin', password='pwd')
@@ -333,7 +348,9 @@ class TestQueryPlayground(TestCase):
         self.assertContains(resp, '3401')
 
     def test_playground_doesnt_render_with_posted_sql_if_show_is_none(self):
-        resp = self.client.post(reverse("explorer_playground") + '?show=0', {'sql': 'select 1+3400;'})
+        resp = self.client.post(
+            reverse("explorer_playground") + '?show=0', {'sql': 'select 1+3400;'}
+        )
         self.assertTemplateUsed(resp, 'explorer/play.html')
         self.assertNotContains(resp, '3401')
 
@@ -364,12 +381,13 @@ class TestQueryPlayground(TestCase):
 
     def test_fullscreen(self):
         query = SimpleQueryFactory(sql="")
-        resp = self.client.get('%s?query_id=%s&fullscreen=1' % (reverse("explorer_playground"), query.id))
+        resp = self.client.get(
+            '%s?query_id=%s&fullscreen=1' % (reverse("explorer_playground"), query.id)
+        )
         self.assertTemplateUsed(resp, 'explorer/fullscreen.html')
 
 
 class TestCSVFromSQL(TestCase):
-
     def setUp(self):
         self.user = User.objects.create_superuser('admin', 'admin@admin.com', 'pwd')
         self.client.login(username='admin', password='pwd')
@@ -468,14 +486,15 @@ class TestSQLDownloadViews(TestCase):
 
 
 class TestSchemaView(TestCase):
-
     def setUp(self):
         cache.clear()
         self.user = User.objects.create_superuser('admin', 'admin@admin.com', 'pwd')
         self.client.login(username='admin', password='pwd')
 
     def test_returns_schema_contents(self):
-        resp = self.client.get(reverse("explorer_schema", kwargs={'connection': EXPLORER_CONNECTIONS['Postgres']}))
+        resp = self.client.get(
+            reverse("explorer_schema", kwargs={'connection': EXPLORER_CONNECTIONS['Postgres']})
+        )
         self.assertContains(resp, "explorer_query")
         self.assertTemplateUsed(resp, 'explorer/schema.html')
 
@@ -485,38 +504,42 @@ class TestSchemaView(TestCase):
 
     def test_admin_required(self):
         self.client.logout()
-        resp = self.client.get(reverse("explorer_schema", kwargs={'connection': EXPLORER_CONNECTIONS['Postgres']}))
+        resp = self.client.get(
+            reverse("explorer_schema", kwargs={'connection': EXPLORER_CONNECTIONS['Postgres']})
+        )
         self.assertTemplateUsed(resp, 'admin/login.html')
 
     @patch('explorer.schema.do_async')
     def test_builds_async(self, mocked_async_check):
         mocked_async_check.return_value = True
-        resp = self.client.get(reverse("explorer_schema", kwargs={'connection': EXPLORER_CONNECTIONS['Postgres']}))
+        resp = self.client.get(
+            reverse("explorer_schema", kwargs={'connection': EXPLORER_CONNECTIONS['Postgres']})
+        )
         self.assertTemplateUsed(resp, 'explorer/schema_building.html')
 
 
 class TestFormat(TestCase):
-
     def setUp(self):
         self.user = User.objects.create_superuser('admin', 'admin@admin.com', 'pwd')
         self.client.login(username='admin', password='pwd')
 
     def test_returns_formatted_sql(self):
-        resp = self.client.post(reverse("format_sql"),  data={"sql": "select * from explorer_query"})
+        resp = self.client.post(reverse("format_sql"), data={"sql": "select * from explorer_query"})
         resp = json.loads(resp.content.decode('utf-8'))
         self.assertIn("\n", resp['formatted'])
         self.assertIn("explorer_query", resp['formatted'])
 
 
 class TestParamsInViews(TestCase):
-
     def setUp(self):
         self.user = User.objects.create_superuser('admin', 'admin@admin.com', 'pwd')
         self.client.login(username='admin', password='pwd')
         self.query = SimpleQueryFactory(sql="select $$swap$$;")
 
     def test_retrieving_query_works_with_params(self):
-        resp = self.client.get(reverse("query_detail", kwargs={'query_id': self.query.id}) + '?params=swap:123}')
+        resp = self.client.get(
+            reverse("query_detail", kwargs={'query_id': self.query.id}) + '?params=swap:123}'
+        )
         self.assertContains(resp, "123")
 
     def test_saving_non_executing_query_with__wrong_url_params_works(self):
@@ -527,12 +550,13 @@ class TestParamsInViews(TestCase):
         self.assertContains(resp, 'saved')
 
     def test_users_without_change_permissions_can_use_params(self):
-        resp = self.client.get(reverse("query_detail", kwargs={'query_id': self.query.id}) + '?params=swap:123}')
+        resp = self.client.get(
+            reverse("query_detail", kwargs={'query_id': self.query.id}) + '?params=swap:123}'
+        )
         self.assertContains(resp, "123")
 
 
 class TestCreatedBy(TestCase):
-
     def setUp(self):
         self.user = User.objects.create_superuser('admin', 'admin@admin.com', 'pwd')
         self.user2 = User.objects.create_superuser('admin2', 'admin2@admin.com', 'pwd')
@@ -555,7 +579,6 @@ class TestCreatedBy(TestCase):
 
 
 class TestQueryLog(TestCase):
-
     def setUp(self):
         self.user = User.objects.create_superuser('admin', 'admin@admin.com', 'pwd')
         self.client.login(username='admin', password='pwd')

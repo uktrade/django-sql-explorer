@@ -1,11 +1,11 @@
-from django.test import TestCase
 from django.forms.models import model_to_dict
-from explorer.tests.factories import SimpleQueryFactory
+from django.test import TestCase
+
 from explorer.forms import QueryForm
+from explorer.tests.factories import SimpleQueryFactory
 
 
 class TestFormValidation(TestCase):
-
     def test_form_is_valid_with_valid_sql(self):
         q = SimpleQueryFactory(sql="select 1;", created_by_user_id=None)
         form = QueryForm(model_to_dict(q))

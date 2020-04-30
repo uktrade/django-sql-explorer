@@ -1,5 +1,4 @@
 from datetime import date, datetime, timedelta
-from django.core.cache import cache
 
 from explorer import app_settings
 from explorer.exporters import get_exporter_class
@@ -9,10 +8,12 @@ if app_settings.ENABLE_TASKS:
     from celery import task
     from celery.utils.log import get_task_logger
     from explorer.utils import s3_upload
+
     logger = get_task_logger(__name__)
 else:
     from explorer.utils import noop_decorator as task
     import logging
+
     logger = logging.getLogger(__name__)
 
 
@@ -52,4 +53,5 @@ def truncate_querylogs(days):
 @task
 def build_schema_cache_async(connection_alias, schema=None, table=None):
     from .schema import build_schema_info
+
     return build_schema_info(connection_alias, schema, table)

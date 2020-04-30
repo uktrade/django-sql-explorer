@@ -1,16 +1,15 @@
-from django.test import TestCase
-from explorer.app_settings import EXPLORER_DEFAULT_CONNECTION as CONN
-from explorer.tasks import snapshot_queries, truncate_querylogs, build_schema_cache_async
-from explorer.tests.factories import SimpleQueryFactory
-from django.core import mail
-from unittest.mock import Mock, patch
-from six import StringIO
-from explorer.models import QueryLog
 from datetime import datetime, timedelta
+from unittest.mock import patch
+
+from django.test import TestCase
+
+from explorer.app_settings import EXPLORER_DEFAULT_CONNECTION as CONN
+from explorer.models import QueryLog
+from explorer.tasks import build_schema_cache_async, snapshot_queries, truncate_querylogs
+from explorer.tests.factories import SimpleQueryFactory
 
 
 class TestTasks(TestCase):
-
     @patch('explorer.tasks.s3_upload')
     def test_snapshots(self, mocked_upload):
         mocked_upload.return_value = 'http://s3.com/your-file.csv'
