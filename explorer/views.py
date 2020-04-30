@@ -459,6 +459,8 @@ class TableBrowserDetailView(PermissionRequiredMixin, ExplorerContextMixin, List
             model = ModelSchema.objects.create(name=table_name)
 
         for column in columns:
+            # Django automatically adds a field called id to all models if a primary key isn't
+            # specified so we need to skip adding this to the dynamic model
             if column.name == 'id':
                 continue
             try:
