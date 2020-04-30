@@ -106,6 +106,8 @@ def build_schema_info(connection_alias, schema=None, table=None):
                 continue
             columns = _get_columns_for_table(insp, schema, table_name)
             tables.append(Table(TableName(schema, table_name), columns))
+
+    engine.dispose()
     return tables
 
 
