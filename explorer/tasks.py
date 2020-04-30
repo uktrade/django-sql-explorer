@@ -76,6 +76,6 @@ def truncate_querylogs(days):
 
 
 @task
-def build_schema_cache_async(connection_alias, schema, table):
+def build_schema_cache_async(connection_alias, schema=None, table=None):
     from .schema import build_schema_info
     return build_schema_info(connection_alias, schema, table)

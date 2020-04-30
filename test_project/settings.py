@@ -52,6 +52,7 @@ EXPLORER_CONNECTIONS = {
     'Another': 'alt'
 }
 EXPLORER_DEFAULT_CONNECTION = 'default'
+EXPLORER_SCHEMA_EXCLUDE_TABLE_PREFIXES = []
 
 ROOT_URLCONF = 'explorer.tests.urls'
 
@@ -80,7 +81,8 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'django.contrib.admin',
     'explorer',
-    'djcelery'
+    'djcelery',
+    'dynamic_models'
 )
 
 AUTHENTICATION_BACKENDS = (
