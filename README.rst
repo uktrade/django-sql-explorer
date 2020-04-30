@@ -335,6 +335,7 @@ Tests
 Factory Boy is needed if you'd like to run the tests, which can you do
 easily:
 
+``cp .envs/sample.env .env``
 ``python manage.py test``
 
 and with coverage:

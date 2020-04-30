@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import logging
 from time import time
+import uuid
 import six
 
 from django.db import models, DatabaseError
@@ -25,7 +26,7 @@ from explorer.utils import (
 )
 
 MSG_FAILED_BLACKLIST = "Query failed the SQL blacklist: %s"
-
+POSTGRES_VENDOR = 'postgresql'
 
 logger = logging.getLogger(__name__)
 
@@ -153,25 +154,36 @@ class QueryLog(models.Model):
 
 class QueryResult(object):
 
-    def __init__(self, sql, connection):
-
+    def __init__(self, sql, connection, limit=app_settings.EXPLORER_DEFAULT_ROWS):
         self.sql = sql
         self.connection = connection
-
-        cursor, duration = self.execute_query()
-
-        self._description = cursor.description or []
-        self._data = [list(r) for r in cursor.fetchall()]
-        self.duration = duration
-
-        cursor.close()
-
-        self._headers = self._get_headers()
+        self.limit = limit
+        self._row_count = None
+        self._data = []
+        self._headers = []
         self._summary = {}
+        self._description = None
+        self.duration = None
+        self.execute_query()
+
+    def execute_query(self):
+        with self.connection.cursor() as cursor:
+            sql_query = SQLQuery(cursor, self.sql, self.limit)
+            self._data = sql_query.get_results()
+            self._description = sql_query.description
+            self._headers = self._get_headers()
+            self._row_count = sql_query.count
+            self.duration = sql_query.duration
 
     @property
     def data(self):
         return self._data or []
+
+    @property
+    def row_count(self):
+        if self._row_count is None:
+            return len(self.data)
+        return self._row_count
 
     @property
     def headers(self):
@@ -185,9 +197,7 @@ class QueryResult(object):
         return [ColumnHeader(d[0]) for d in self._description] if self._description else [ColumnHeader('--')]
 
     def _get_numerics(self):
-        if hasattr(self.connection.Database, "NUMBER"):
-            return [ix for ix, c in enumerate(self._description) if hasattr(c, 'type_code') and c.type_code in self.connection.Database.NUMBER.values]
-        elif self.data:
+        if self.data:
             d = self.data[0]
             return [ix for ix, _ in enumerate(self._description) if not isinstance(d[ix], six.string_types) and six.text_type(d[ix]).isnumeric()]
         return []
@@ -201,10 +211,8 @@ class QueryResult(object):
 
     def process(self):
         start_time = time()
-
         self.process_columns()
         self.process_rows()
-
         logger.info("Explorer Query Processing took %sms." % ((time() - start_time) * 1000))
 
     def process_columns(self):
@@ -218,17 +226,57 @@ class QueryResult(object):
                 for ix, t in transforms:
                     r[ix] = t.format(str(r[ix]))
 
-    def execute_query(self):
-        cursor = self.connection.cursor()
+
+class SQLQuery(object):
+
+    def __init__(self, cursor, sql, limit):
+        self.sql = sql
+        self.cursor = cursor
+        self.duration = 0
+        self.limit = limit
+        self._cursor_name = None
+        self._count = 0
+        self._description = None
+
+    @property
+    def count(self):
+        if not self._count and self.cursor.db.vendor == POSTGRES_VENDOR:
+            self.cursor.execute(f'select count(*) from ({self.sql}) t')
+            self._count = self.cursor.fetchone()[0]
+        return self._count
+
+    def execute(self):
         start_time = time()
-
         try:
-            cursor.execute(self.sql)
+            self._execute()
         except DatabaseError as e:
-            cursor.close()
             raise e
+        self.duration = (time() - start_time) * 1000
 
-        return cursor, ((time() - start_time) * 1000)
+    def _execute(self):
+        if self.cursor.db.vendor == POSTGRES_VENDOR:
+            self.cursor.execute(f'DECLARE {self.cursor_name} CURSOR WITH HOLD FOR {self.sql}')
+            self.cursor.execute(f'FETCH {self.limit} FROM {self.cursor_name}')
+        else:
+            self.cursor.execute(self.sql)
+
+    def get_results(self):
+        self.execute()
+        self._description = self.cursor.description or []
+        results = [list(r) for r in self.cursor]
+        if self.cursor.db.vendor == POSTGRES_VENDOR:
+            self.cursor.execute(f'CLOSE {self.cursor_name}')
+        return results
+
+    @property
+    def cursor_name(self):
+        if not self._cursor_name:
+            self._cursor_name = 'cur_%s' % str(uuid.uuid4()).replace('-', '')[:10]
+        return self._cursor_name
+
+    @property
+    def description(self):
+        return self._description
 
 
 @six.python_2_unicode_compatible
