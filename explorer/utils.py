@@ -98,6 +98,10 @@ def url_get_rows(request):
     return get_int_from_request(request, 'rows', app_settings.EXPLORER_DEFAULT_ROWS)
 
 
+def url_get_page(request):
+    return get_int_from_request(request, 'page', 1)
+
+
 def url_get_query_id(request):
     return get_int_from_request(request, 'query_id', None)
 

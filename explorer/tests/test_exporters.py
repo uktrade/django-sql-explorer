@@ -16,7 +16,9 @@ from explorer.tests.factories import SimpleQueryFactory
 
 class TestCsv(TestCase):
     def test_writing_unicode(self):
-        res = QueryResult(SimpleQueryFactory(sql='select 1 as "a", 2 as ""').sql, connections[CONN])
+        res = QueryResult(
+            SimpleQueryFactory(sql='select 1 as "a", 2 as ""').sql, connections[CONN], 1
+        )
         res.execute_query()
         res.process()
         res._data = [[1, None], [u"Jenét", '1']]
@@ -33,7 +35,9 @@ class TestCsv(TestCase):
 
 class TestJson(TestCase):
     def test_writing_json(self):
-        res = QueryResult(SimpleQueryFactory(sql='select 1 as "a", 2 as ""').sql, connections[CONN])
+        res = QueryResult(
+            SimpleQueryFactory(sql='select 1 as "a", 2 as ""').sql, connections[CONN], 1
+        )
         res.execute_query()
         res.process()
         res._data = [[1, None], [u"Jenét", '1']]
@@ -44,7 +48,7 @@ class TestJson(TestCase):
 
     def test_writing_datetimes(self):
         res = QueryResult(
-            SimpleQueryFactory(sql='select 1 as "a", 2 as "b"').sql, connections[CONN]
+            SimpleQueryFactory(sql='select 1 as "a", 2 as "b"').sql, connections[CONN], 1
         )
         res.execute_query()
         res.process()
@@ -69,8 +73,8 @@ class TestExcel(TestCase):
                 title='\\/*[]:?this title is longer than 32 characters',
             ).sql,
             connections[CONN],
+            1,
         )
-
         res.execute_query()
         res.process()
 
@@ -92,6 +96,7 @@ class TestExcel(TestCase):
                 title='\\/*[]:?this title is longer than 32 characters',
             ).sql,
             connections[CONN],
+            1,
         )
 
         res.execute_query()

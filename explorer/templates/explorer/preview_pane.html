@@ -18,12 +18,13 @@
                                 </div>
                                 <div class="col-md-6 text-right">
                                   <span class="row-control">
+                                      Page <input class="rows-input" type="text" name="page" id="page" value="{{ page }}" /> of {{ total_pages }} showing
                                       {% if rows > total_rows %}
-                                          Showing <input class="rows-input" type="text" name="rows" id="rows" value="{{ total_rows }}" />
+                                           <input class="rows-input" type="text" name="rows" id="rows" value="{{ total_rows }}" />
                                       {% else %}
-                                          First <input class="rows-input" type="text" name="rows" id="rows" value="{{ rows }}" />
+                                          <input class="rows-input" type="text" name="rows" id="rows" value="{{ rows }}" />
                                       {% endif %}
-                                      of {{ total_rows }} total rows.
+                                      rows from a total of {{ total_rows }}
                                   </span>
                                   <span>
                                     <small>
