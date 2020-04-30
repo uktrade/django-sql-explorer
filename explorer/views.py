@@ -482,15 +482,15 @@ class TableBrowserDetailView(PermissionRequiredMixin, ExplorerContextMixin, List
         return Model
 
     def get_queryset(self):
-        Model = self.get_model()
-        return Model.objects.all()[:app_settings.TABLE_BROWSER_LIMIT]
+        if not self.model:
+            self.model = self.get_model()
+        return self.model.objects.all()[:app_settings.TABLE_BROWSER_LIMIT]
 
     def get_context_data(self, **kwargs):
-        ctx = super(TableBrowserDetailView, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx['schema_name'] = self.kwargs['schema']
         ctx['table_name'] = self.kwargs['table']
-        ctx['fields'] = [field.name for field in self.get_model()._meta.get_fields() if field.name != 'id']
+        ctx['fields'] = [field.name for field in self.model._meta.get_fields() if field.name != 'id']
         ctx['objects'] = serializers.serialize('python', self.get_queryset())
         ctx['connection'] = self.kwargs['connection']
         return ctx
-    
