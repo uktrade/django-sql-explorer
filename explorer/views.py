@@ -488,7 +488,7 @@ class TableBrowserDetailView(PermissionRequiredMixin, ExplorerContextMixin, List
     def get_context_data(self, **kwargs):
         ctx = super(TableBrowserDetailView, self).get_context_data(**kwargs)
         ctx['model_name'] = self.kwargs['table']
-        ctx['fields'] = [field.name for field in self.get_model()._meta.get_fields()]
+        ctx['fields'] = [field.name for field in self.get_model()._meta.get_fields() if field.name != 'id']
         ctx['objects'] = serializers.serialize('python', self.get_queryset())
         ctx['connection'] = self.kwargs['connection']
         return ctx
