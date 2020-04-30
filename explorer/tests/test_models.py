@@ -107,11 +107,13 @@ class TestQueryModel(TestCase):
         self.assertRaises(InvalidExplorerConnectionException, q.execute_query_only)
 
 
-class TestQueryResults(TestCase):
+class _AbstractQueryResults:
+    connection_name = CONN
+    query = 'select 1 as "foo", "qux" as "mux";'
 
     def setUp(self):
-        conn = connections[CONN]
-        self.qr = QueryResult('select 1 as "foo", "qux" as "mux";', conn)
+        conn = connections[self.connection_name]
+        self.qr = QueryResult(self.query, conn)
 
     def test_column_access(self):
         self.qr._data = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
@@ -169,6 +171,17 @@ class TestQueryResults(TestCase):
     def test_get_headers_no_results(self):
         self.qr._description = None
         self.assertEqual([ColumnHeader('--')][0].title, self.qr._get_headers()[0].title)
+
+
+class TestQueryResults(_AbstractQueryResults, TestCase):
+    databases = ['default']
+    connection_name = CONN
+
+
+class TestPostgresQueryResults(_AbstractQueryResults, TestCase):
+    databases = ['postgres']
+    connection_name = 'postgres'
+    query = "select 1 as foo, 'qux' as mux"
 
 
 class TestColumnSummary(TestCase):

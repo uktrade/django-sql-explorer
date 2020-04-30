@@ -1,6 +1,14 @@
 import django
 import os
+import environ
 import djcelery
+import dj_database_url
+
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv())
+
+env = environ.Env()
+
 SECRET_KEY = 'shhh'
 DEBUG = True
 STATIC_URL = '/static/'
@@ -8,6 +16,10 @@ STATIC_URL = '/static/'
 ALLOWED_HOSTS = ['0.0.0.0', 'localhost', '127.0.0.1']
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+
+POSTGRES_DATABASE_URL = env(
+    'DJANGO_SQL_EXPLORER_DATABASE_URL'
+)
 
 DATABASES = {
     'default': {
@@ -17,6 +29,7 @@ DATABASES = {
             'NAME': 'tmp'
         }
     },
+    'postgres': dj_database_url.parse(POSTGRES_DATABASE_URL),
     'alt': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': 'tmp2',
@@ -34,8 +47,7 @@ DATABASES = {
 }
 
 EXPLORER_CONNECTIONS = {
-    #'Postgres': 'postgres',
-    #'MySQL': 'mysql',
+    'Postgres': 'postgres',
     'SQLite': 'default',
     'Another': 'alt'
 }
