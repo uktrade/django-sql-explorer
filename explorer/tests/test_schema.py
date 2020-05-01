@@ -16,6 +16,8 @@ class TestSchemaInfo(TestCase):
         assert mocked_includes.called  # sanity check: ensure patch worked
         tables = [x.name.name for x in res]
         self.assertIn('explorer_query', tables)
+        schemas = [x.name.schema for x in res]
+        self.assertIn('public', schemas)
 
     @patch('explorer.schema._get_includes')
     @patch('explorer.schema._get_excludes')
