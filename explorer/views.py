@@ -10,6 +10,8 @@ except ImportError:
 import django
 from django.core import serializers
 from django.core.cache import cache
+from django.core.exceptions import FieldDoesNotExist
+from django.core.paginator import Paginator
 from django.db import DatabaseError
 from django.db.models import Count
 from django.forms.models import model_to_dict
@@ -484,13 +486,32 @@ class TableBrowserDetailView(PermissionRequiredMixin, ExplorerContextMixin, List
     def get_queryset(self):
         if not self.model:
             self.model = self.get_model()
-        return self.model.objects.all()[:app_settings.TABLE_BROWSER_LIMIT]
+        filters = {}
+        for filter_field, filter_value in self.request.GET.items():
+            if not filter_value:
+                continue
+            try:
+                field = self.model._meta.get_field(filter_field)
+            except FieldDoesNotExist:
+                continue
+            else:
+                filters[filter_field] = field.to_python(filter_value)
+
+        queryset = self.model.objects.filter(**filters)
+        order_by = self.request.GET.get('order_by')
+        if order_by:
+            return queryset.order_by(order_by)
+        return queryset
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        queryset = self.get_queryset()
+        paginator = Paginator(serializers.serialize('python', queryset), app_settings.TABLE_BROWSER_LIMIT)
+        page_number = self.request.GET.get('page')
+
         ctx['schema_name'] = self.kwargs['schema']
         ctx['table_name'] = self.kwargs['table']
-        ctx['fields'] = [field.name for field in self.model._meta.get_fields() if field.name != 'id']
-        ctx['objects'] = serializers.serialize('python', self.get_queryset())
+        ctx['fields'] = [(field.name, [str(x) for x in queryset.values_list(field.name, flat=True).distinct()]) for field in self.model._meta.get_fields() if field.name != 'id']
         ctx['connection'] = self.kwargs['connection']
+        ctx['objects'] = paginator.get_page(page_number)
         return ctx
