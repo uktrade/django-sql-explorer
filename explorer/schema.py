@@ -1,7 +1,8 @@
 from collections import namedtuple
 
 from sqlalchemy import create_engine
-from sqlalchemy.dialects.postgresql.base import DOUBLE_PRECISION, ENUM, TIMESTAMP
+from sqlalchemy.dialects.postgresql.base import DOUBLE_PRECISION, ENUM, TIMESTAMP, UUID
+from sqlalchemy.dialects.postgresql.array import ARRAY
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql.sqltypes import BOOLEAN, DATE, FLOAT, INTEGER, NUMERIC, SMALLINT, TEXT, VARCHAR
 
@@ -54,7 +55,9 @@ def schema_info(connection_alias, schema=None, table=None):
 COLUMN_MAPPING = {
     ENUM: 'Charfield',
     VARCHAR: 'CharField',
+    UUID: 'CharField',
     TEXT: 'TextField',
+    ARRAY: 'TextField',
     INTEGER: 'IntegerField',
     SMALLINT: 'IntegerField',
     NUMERIC: 'IntegerField',
@@ -114,10 +117,10 @@ def _get_columns_for_table(insp, schema, table_name):
     columns = []
     cols = insp.get_columns(table_name, schema=schema)
     for col in cols:
-        try:
-            columns.append(Column(col['name'], COLUMN_MAPPING[type(col['type'])]))
-        except KeyError:
-            continue
+        # try:
+        columns.append(Column(col['name'], COLUMN_MAPPING[type(col['type'])]))
+        # except KeyError:
+            # continue
     return columns
 
 
