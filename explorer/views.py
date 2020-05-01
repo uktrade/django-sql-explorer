@@ -511,7 +511,7 @@ class TableBrowserDetailView(PermissionRequiredMixin, ExplorerContextMixin, List
 
         ctx['schema_name'] = self.kwargs['schema']
         ctx['table_name'] = self.kwargs['table']
-        ctx['fields'] = [(field.name, [str(x) for x in queryset.values_list(field.name, flat=True).distinct()]) for field in self.model._meta.get_fields() if field.name != 'id']
+        ctx['fields'] = [(field.name, [str(x) for x in queryset.values_list(field.name, flat=True).distinct()][:100]) for field in self.model._meta.get_fields() if field.name != 'id']
         ctx['connection'] = self.kwargs['connection']
         ctx['objects'] = paginator.get_page(page_number)
         return ctx
