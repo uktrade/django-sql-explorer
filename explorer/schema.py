@@ -1,3 +1,4 @@
+import logging
 from collections import namedtuple
 
 from sqlalchemy import create_engine
@@ -17,6 +18,8 @@ from explorer.app_settings import (
 from explorer.tasks import build_schema_cache_async
 from explorer.utils import get_valid_connection
 
+
+logger = logging.getLogger(__name__)
 
 # These wrappers make it easy to mock and test
 def _get_includes():
@@ -117,10 +120,11 @@ def _get_columns_for_table(insp, schema, table_name):
     columns = []
     cols = insp.get_columns(table_name, schema=schema)
     for col in cols:
-        # try:
-        columns.append(Column(col['name'], COLUMN_MAPPING[type(col['type'])]))
-        # except KeyError:
-            # continue
+        try:
+            columns.append(Column(col['name'], COLUMN_MAPPING[type(col['type'])]))
+        except KeyError:
+            logger.info(f'Skipping {col["name"]} as {col["type"]} is not a supported field type')
+            continue
     return columns
 
 
