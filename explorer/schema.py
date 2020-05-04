@@ -64,7 +64,7 @@ COLUMN_MAPPING = {
     ARRAY: 'TextField',
     INTEGER: 'IntegerField',
     SMALLINT: 'IntegerField',
-    NUMERIC: 'IntegerField',
+    NUMERIC: 'FloatField',
     DOUBLE_PRECISION: 'FloatField',
     FLOAT: 'FloatField',
     BOOLEAN: 'BooleanField',
