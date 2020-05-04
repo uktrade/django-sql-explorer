@@ -180,3 +180,12 @@ def s3_upload(key, data):
     k.set_acl('public-read')
     k.set_metadata('Content-Type', 'text/csv')
     return k.generate_url(expires_in=0, query_auth=False)
+
+
+def get_total_pages(total_rows, page_size):
+    if not total_rows or not page_size:
+        return 1
+    remainder = total_rows % page_size
+    if remainder:
+        remainder = 1
+    return int(total_rows / page_size) + remainder

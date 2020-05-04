@@ -32,6 +32,7 @@ from explorer.schema import schema_info
 from explorer.utils import (
     allowed_query_pks,
     fmt_sql,
+    get_total_pages,
     url_get_fullscreen,
     url_get_log_id,
     url_get_page,
@@ -429,7 +430,7 @@ def query_viewmodel(
         'ql_id': ql.id if ql else None,
         'unsafe_rendering': app_settings.UNSAFE_RENDERING,
     }
-    ret['total_pages'] = total_pages(ret['total_rows'], rows)
+    ret['total_pages'] = get_total_pages(ret['total_rows'], rows)
     return ret
 
 
@@ -520,12 +521,3 @@ class TableBrowserDetailView(PermissionRequiredMixin, ExplorerContextMixin, List
         ctx['objects'] = serializers.serialize('python', self.get_queryset())
         ctx['connection'] = self.kwargs['connection']
         return ctx
-
-
-def total_pages(total_rows, page_size):
-    if not total_rows or not page_size:
-        return 1
-    remainder = total_rows % page_size
-    if remainder:
-        remainder = 1
-    return int(total_rows / page_size) + remainder
