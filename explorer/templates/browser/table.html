@@ -30,7 +30,7 @@
                       <br>
                       {% with "-"|add:field as down_sorted_field %}
                         <button type="button" onclick="$('#order_by_button').val('{% if request.GET.order_by == down_sorted_field %}{{ field }}{% elif request.GET.order_by == field %}-{{ field }}{% else %}{{field }}{% endif %}');this.form.submit();">
-                          {{ field }} {% if request.GET.order_by == down_sorted_field %}&uarr;{% elif request.GET.order_by == field %}&darr;{% endif %}
+                          {{ field }} {% if request.GET.order_by == down_sorted_field %}&darr;{% elif request.GET.order_by == field %}&uarr;{% endif %}
                         </button>
                       {% endwith %}
                     </th>
