@@ -1,10 +1,10 @@
-import django
 import os
-import environ
-import djcelery
-import dj_database_url
 
-from dotenv import load_dotenv, find_dotenv
+import dj_database_url
+import djcelery
+import environ
+from dotenv import find_dotenv, load_dotenv
+
 load_dotenv(find_dotenv())
 
 env = environ.Env()
@@ -17,40 +17,20 @@ ALLOWED_HOSTS = ['0.0.0.0', 'localhost', '127.0.0.1']
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
-POSTGRES_DATABASE_URL = env(
-    'DJANGO_SQL_EXPLORER_DATABASE_URL'
-)
+POSTGRES_DATABASE_URL = env('DJANGO_SQL_EXPLORER_DATABASE_URL')
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': 'tmp',
-        'TEST': {
-            'NAME': 'tmp'
-        }
-    },
+    'default': {'ENGINE': 'django.db.backends.sqlite3', 'NAME': 'tmp', 'TEST': {'NAME': 'tmp'}},
     'postgres': dj_database_url.parse(POSTGRES_DATABASE_URL),
-    'alt': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': 'tmp2',
-        'TEST': {
-            'NAME': 'tmp2'
-        }
-    },
+    'alt': {'ENGINE': 'django.db.backends.sqlite3', 'NAME': 'tmp2', 'TEST': {'NAME': 'tmp2'}},
     'not_registered': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': 'tmp3',
-        'TEST': {
-            'NAME': 'tmp3'
-        }
-    }
+        'TEST': {'NAME': 'tmp3'},
+    },
 }
 
-EXPLORER_CONNECTIONS = {
-    'Postgres': 'postgres',
-    'SQLite': 'default',
-    'Another': 'alt'
-}
+EXPLORER_CONNECTIONS = {'Postgres': 'postgres', 'SQLite': 'default', 'Another': 'alt'}
 EXPLORER_DEFAULT_CONNECTION = 'default'
 EXPLORER_SCHEMA_EXCLUDE_TABLE_PREFIXES = []
 
@@ -68,7 +48,7 @@ TEMPLATES = [
                 'django.template.context_processors.static',
                 'django.template.context_processors.request',
             ],
-            'debug': DEBUG
+            'debug': DEBUG,
         },
     },
 ]
@@ -82,12 +62,10 @@ INSTALLED_APPS = (
     'django.contrib.admin',
     'explorer',
     'djcelery',
-    'dynamic_models'
+    'dynamic_models',
 )
 
-AUTHENTICATION_BACKENDS = (
-    "django.contrib.auth.backends.ModelBackend",
-)
+AUTHENTICATION_BACKENDS = ("django.contrib.auth.backends.ModelBackend",)
 
 MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -105,10 +83,7 @@ BROKER_BACKEND = 'memory'
 
 # Explorer-specific
 
-EXPLORER_TRANSFORMS = (
-    ('foo', '<a href="{0}">{0}</a>'),
-    ('bar', 'x: {0}')
-)
+EXPLORER_TRANSFORMS = (('foo', '<a href="{0}">{0}</a>'), ('bar', 'x: {0}'))
 
 EXPLORER_USER_QUERY_VIEWS = {}
 EXPLORER_TASKS_ENABLED = True

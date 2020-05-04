@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from django.db import models, migrations
+from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
@@ -14,6 +14,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='query',
             name='snapshot',
-            field=models.BooleanField(default=False, help_text=b'Include in snapshot task (if enabled)'),
+            field=models.BooleanField(
+                default=False, help_text=b'Include in snapshot task (if enabled)'
+            ),
         ),
     ]

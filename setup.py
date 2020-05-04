@@ -1,5 +1,7 @@
 import os
-from setuptools import setup, find_packages
+
+from setuptools import find_packages, setup
+
 from explorer import __version__
 
 # Utility function to read the README file.
@@ -11,13 +13,16 @@ from explorer import __version__
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
+
 setup(
     name="django-sql-explorer",
     version=__version__,
     author="Chris Clark",
     author_email="chris@untrod.com",
-    description=("A pluggable app that allows users (admins) to execute SQL,"
-                 " view, and export the results."),
+    description=(
+        "A pluggable app that allows users (admins) to execute SQL,"
+        " view, and export the results."
+    ),
     license="MIT",
     keywords="django sql explorer reports reporting csv database query",
     url="https://github.com/uktrade/django-sql-explorer",
@@ -46,7 +51,7 @@ setup(
         'unicodecsv>=0.14.1',
         'six>=1.10.0',
         'django-dynamic-models-readonly>=0.1.1',
-        'sqlalchemy>=1.3.15'
+        'sqlalchemy>=1.3.15',
     ],
     include_package_data=True,
     zip_safe=False,

@@ -1,11 +1,12 @@
-from explorer.apps import _validate_connections
-from django.test import TestCase
-from django.core.exceptions import ImproperlyConfigured
 from unittest.mock import patch
+
+from django.core.exceptions import ImproperlyConfigured
+from django.test import TestCase
+
+from explorer.apps import _validate_connections
 
 
 class TestApps(TestCase):
-
     @patch('explorer.apps._get_default')
     def test_validates_default_connections(self, mocked_connection):
         mocked_connection.return_value = 'garbage'

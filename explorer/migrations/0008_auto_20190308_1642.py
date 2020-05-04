@@ -14,6 +14,12 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='query',
             name='connection',
-            field=models.CharField(blank=True, help_text='Name of DB connection (as specified in settings) to use for this query. Will use EXPLORER_DEFAULT_CONNECTION if left blank', max_length=128, null=True),
+            field=models.CharField(
+                blank=True,
+                help_text='Name of DB connection (as specified in settings) to use for this query. '
+                'Will use EXPLORER_DEFAULT_CONNECTION if left blank',
+                max_length=128,
+                null=True,
+            ),
         ),
     ]

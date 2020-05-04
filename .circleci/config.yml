@@ -37,6 +37,11 @@ job_defaults: &job_defaults
           - ~/cache/pip
 
     - run:
+        name: Run format checks
+        command: |
+          make check
+
+    - run:
         name: Run tests
         command: python manage.py test
 
