@@ -438,7 +438,7 @@ class TableBrowserDetailView(PermissionRequiredMixin, ExplorerContextMixin, List
 
     permission_required = 'view_permission'
     template_name = "browser/table.html"
-    column_mapping = {
+    COLUMN_MAPPING = {
         'CharField': 'character',
         'TextField': 'text',
         'IntegerField': 'integer',
@@ -447,6 +447,7 @@ class TableBrowserDetailView(PermissionRequiredMixin, ExplorerContextMixin, List
         'DateField': 'date',
         'TimestampField': 'date'
     }
+    MAXIMUM_FILTER_VALUES = 100
 
     def get_model(self):
         schema = self.kwargs['schema']
@@ -469,7 +470,7 @@ class TableBrowserDetailView(PermissionRequiredMixin, ExplorerContextMixin, List
                 field = FieldSchema.objects.get(name=column.name)
             except FieldSchema.DoesNotExist:
                 field = FieldSchema.objects.create(
-                    name=column.name, data_type=self.column_mapping[column.type]
+                    name=column.name, data_type=self.COLUMN_MAPPING[column.type]
                 )
 
             try:
@@ -508,10 +509,12 @@ class TableBrowserDetailView(PermissionRequiredMixin, ExplorerContextMixin, List
         queryset = self.get_queryset()
         paginator = Paginator(serializers.serialize('python', queryset), app_settings.TABLE_BROWSER_LIMIT)
         page_number = self.request.GET.get('page')
+        fields = [f for f in self.model._meta.get_fields() if f.name != 'id']
 
         ctx['schema_name'] = self.kwargs['schema']
         ctx['table_name'] = self.kwargs['table']
-        ctx['fields'] = [(field.name, [str(x) for x in queryset.values_list(field.name, flat=True).distinct()][:100]) for field in self.model._meta.get_fields() if field.name != 'id']
+        # Sets a tuple of (field name, sorted distinct values) for all fields to allow user to filter
+        ctx['fields'] = [(f.name, sorted([str(x) for x in queryset.values_list(f.name, flat=True).distinct()])[:self.MAXIMUM_FILTER_VALUES]) for f in fields]
         ctx['connection'] = self.kwargs['connection']
         ctx['objects'] = paginator.get_page(page_number)
         return ctx
