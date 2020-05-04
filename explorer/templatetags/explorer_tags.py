@@ -17,3 +17,8 @@ def export_buttons(query=None):
         'exporters': exporters,
         'query': query,
     }
+
+
+@register.filter
+def get_item(dictionary, key):
+    return dictionary.get(key)
