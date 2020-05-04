@@ -1,20 +1,20 @@
 from django.conf.urls import url
+
 from explorer.views import (
-    QueryView,
+    ConnectionBrowserListView,
     CreateQueryView,
-    PlayQueryView,
     DeleteQueryView,
-    ListQueryView,
-    ListQueryLogView,
     DownloadFromSqlView,
     DownloadQueryView,
-    StreamQueryView,
-    EmailCsvQueryView,
-    SchemaView,
     format_sql,
-    ConnectionBrowserListView,
+    ListQueryLogView,
+    ListQueryView,
+    PlayQueryView,
+    QueryView,
+    SchemaView,
+    StreamQueryView,
+    TableBrowserDetailView,
     TableBrowserListView,
-    TableBrowserDetailView
 )
 
 urlpatterns = [
@@ -22,7 +22,6 @@ urlpatterns = [
     url(r'(?P<query_id>\d+)/download$', DownloadQueryView.as_view(), name='download_query'),
     url(r'(?P<query_id>\d+)/stream$', StreamQueryView.as_view(), name='stream_query'),
     url(r'download$', DownloadFromSqlView.as_view(), name='download_sql'),
-    url(r'(?P<query_id>\d+)/email_csv$', EmailCsvQueryView.as_view(), name='email_csv_query'),
     url(r'(?P<pk>\d+)/delete$', DeleteQueryView.as_view(), name='query_delete'),
     url(r'new/$', CreateQueryView.as_view(), name='query_create'),
     url(r'play/$', PlayQueryView.as_view(), name='explorer_playground'),
@@ -32,5 +31,9 @@ urlpatterns = [
     url(r'^$', ListQueryView.as_view(), name='explorer_index'),
     url(r'browse/$', ConnectionBrowserListView.as_view(), name='connection_browser_list'),
     url(r'browse/(?P<connection>.+)/$', TableBrowserListView.as_view(), name='table_browser_list'),
-    url(r'browse/(?P<connection>.+)/(?P<schema>.+)/(?P<table>.+)$', TableBrowserDetailView.as_view(), name='table_browser_detail'),
+    url(
+        r'browse/(?P<connection>.+)/(?P<schema>.+)/(?P<table>.+)$',
+        TableBrowserDetailView.as_view(),
+        name='table_browser_detail',
+    ),
 ]

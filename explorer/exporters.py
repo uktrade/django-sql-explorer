@@ -1,20 +1,22 @@
-from django.db import DatabaseError
-from django.core.serializers.json import DjangoJSONEncoder
 import json
-import uuid
 import string
 import sys
+import uuid
 from datetime import datetime
+
+from django.core.serializers.json import DjangoJSONEncoder
+from django.utils.module_loading import import_string
+from django.utils.text import slugify
+from six import BytesIO, StringIO
+
+from explorer import app_settings
+
+
 PY3 = sys.version_info[0] == 3
 if PY3:
     import csv
 else:
     import unicodecsv as csv
-
-from django.utils.module_loading import import_string
-from django.utils.text import slugify
-from explorer import app_settings
-from six import StringIO, BytesIO
 
 
 def get_exporter_class(format):
@@ -88,9 +90,7 @@ class JSONExporter(BaseExporter):
     def _get_output(self, res, **kwargs):
         data = []
         for row in res.data:
-            data.append(
-                dict(zip([str(h) if h is not None else '' for h in res.headers], row))
-            )
+            data.append(dict(zip([str(h) if h is not None else '' for h in res.headers], row)))
 
         json_data = json.dumps(data, cls=DjangoJSONEncoder)
         return StringIO(json_data)
@@ -104,6 +104,7 @@ class ExcelExporter(BaseExporter):
 
     def _get_output(self, res, **kwargs):
         import xlsxwriter
+
         output = BytesIO()
 
         wb = xlsxwriter.Workbook(output, {'in_memory': True})

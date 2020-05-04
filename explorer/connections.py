@@ -1,7 +1,6 @@
-from explorer.app_settings import EXPLORER_CONNECTIONS, EXPLORER_DEFAULT_CONNECTION
 from django.db import connections as djcs
-from django.core.exceptions import ImproperlyConfigured
 
+from explorer.app_settings import EXPLORER_CONNECTIONS
 
 # We export valid SQL connections here so that consuming code never has to
 # deal with django.db.connections directly, and risk accessing a connection
@@ -16,8 +15,8 @@ _connections = {c: c for c in djcs if c in EXPLORER_CONNECTIONS.values()}
 
 
 class ExplorerConnections(dict):
-
     def __getitem__(self, item):
         return djcs[item]
+
 
 connections = ExplorerConnections(_connections)

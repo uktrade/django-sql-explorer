@@ -5,7 +5,6 @@ from explorer import models
 
 
 class UserFactory(factory.DjangoModelFactory):
-
     class Meta:
         model = settings.AUTH_USER_MODEL
 
@@ -14,7 +13,6 @@ class UserFactory(factory.DjangoModelFactory):
 
 
 class SimpleQueryFactory(factory.DjangoModelFactory):
-
     class Meta:
         model = models.Query
 
@@ -26,7 +24,6 @@ class SimpleQueryFactory(factory.DjangoModelFactory):
 
 
 class QueryLogFactory(factory.DjangoModelFactory):
-
     class Meta:
         model = models.QueryLog
 

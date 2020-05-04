@@ -1,28 +1,28 @@
 from __future__ import unicode_literals
 
 import logging
-from time import time
 import uuid
-import six
+from time import time
 
-from django.db import models, DatabaseError
+import six
+from django.conf import settings
+from django.db import DatabaseError, models
+
 try:
     from django.urls import reverse
 except ImportError:
     from django.core.urlresolvers import reverse
-
-from django.conf import settings
-from dynamic_models.models import AbstractFieldSchema, AbstractModelSchema
+from dynamic_models.models import AbstractFieldSchema, AbstractModelSchema  # noqa: I202
 
 from explorer import app_settings
 from explorer.utils import (
-    passes_blacklist,
-    swap_params,
     extract_params,
-    shared_dict_update,
-    get_s3_bucket,
     get_params_for_url,
-    get_valid_connection
+    get_s3_bucket,
+    get_valid_connection,
+    passes_blacklist,
+    shared_dict_update,
+    swap_params,
 )
 
 MSG_FAILED_BLACKLIST = "Query failed the SQL blacklist: %s"
@@ -30,17 +30,25 @@ POSTGRES_VENDOR = 'postgresql'
 
 logger = logging.getLogger(__name__)
 
+
 @six.python_2_unicode_compatible
 class Query(models.Model):
     title = models.CharField(max_length=255)
     sql = models.TextField()
     description = models.TextField(null=True, blank=True)
-    created_by_user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE)
+    created_by_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     last_run_date = models.DateTimeField(auto_now=True)
     snapshot = models.BooleanField(default=False, help_text="Include in snapshot task (if enabled)")
-    connection = models.CharField(blank=True, null=True, max_length=128,
-                                  help_text="Name of DB connection (as specified in settings) to use for this query. Will use EXPLORER_DEFAULT_CONNECTION if left blank")
+    connection = models.CharField(
+        blank=True,
+        null=True,
+        max_length=128,
+        help_text="Name of DB connection (as specified in settings) to use for this query."
+        " Will use EXPLORER_DEFAULT_CONNECTION if left blank",
+    )
 
     def __init__(self, *args, **kwargs):
         self.params = kwargs.get('params')
@@ -83,10 +91,11 @@ class Query(models.Model):
 
     def available_params(self):
         """
-            Merge parameter values into a dictionary of available parameters
+        Merge parameter values into a dictionary of available parameters
 
         :param param_values: A dictionary of Query param values.
-        :return: A merged dictionary of parameter names and values. Values of non-existent parameters are removed.
+        :return: A merged dictionary of parameter names and values.
+         Values of non-existent parameters are removed.
         """
 
         p = extract_params(self.sql)
@@ -110,7 +119,9 @@ class Query(models.Model):
                 is_anonymous = user.is_anonymous
             if is_anonymous:
                 user = None
-        ql = QueryLog(sql=self.final_sql(), query_id=self.id, run_by_user=user, connection=self.connection)
+        ql = QueryLog(
+            sql=self.final_sql(), query_id=self.id, run_by_user=user, connection=self.connection
+        )
         ql.save()
         return ql
 
@@ -124,12 +135,13 @@ class Query(models.Model):
             b = get_s3_bucket()
             keys = b.list(prefix='query-%s/snap-' % self.id)
             keys_s = sorted(keys, key=lambda k: k.last_modified)
-            return [SnapShot(k.generate_url(expires_in=0, query_auth=False),
-                             k.last_modified) for k in keys_s]
+            return [
+                SnapShot(k.generate_url(expires_in=0, query_auth=False), k.last_modified)
+                for k in keys_s
+            ]
 
 
 class SnapShot(object):
-
     def __init__(self, url, last_modified):
         self.url = url
         self.last_modified = last_modified
@@ -139,7 +151,9 @@ class QueryLog(models.Model):
 
     sql = models.TextField(null=True, blank=True)
     query = models.ForeignKey(Query, null=True, blank=True, on_delete=models.SET_NULL)
-    run_by_user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE)
+    run_by_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE
+    )
     run_at = models.DateTimeField(auto_now_add=True)
     duration = models.FloatField(blank=True, null=True)  # milliseconds
     connection = models.CharField(blank=True, null=True, max_length=128)
@@ -153,7 +167,6 @@ class QueryLog(models.Model):
 
 
 class QueryResult(object):
-
     def __init__(self, sql, connection, limit=app_settings.EXPLORER_DEFAULT_ROWS):
         self.sql = sql
         self.connection = connection
@@ -194,17 +207,29 @@ class QueryResult(object):
         return [str(h) for h in self.headers]
 
     def _get_headers(self):
-        return [ColumnHeader(d[0]) for d in self._description] if self._description else [ColumnHeader('--')]
+        return (
+            [ColumnHeader(d[0]) for d in self._description]
+            if self._description
+            else [ColumnHeader('--')]
+        )
 
     def _get_numerics(self):
         if self.data:
             d = self.data[0]
-            return [ix for ix, _ in enumerate(self._description) if not isinstance(d[ix], six.string_types) and six.text_type(d[ix]).isnumeric()]
+            return [
+                ix
+                for ix, _ in enumerate(self._description)
+                if not isinstance(d[ix], six.string_types) and six.text_type(d[ix]).isnumeric()
+            ]
         return []
 
     def _get_transforms(self):
         transforms = dict(app_settings.EXPLORER_TRANSFORMS)
-        return [(ix, transforms[str(h)]) for ix, h in enumerate(self.headers) if str(h) in transforms.keys()]
+        return [
+            (ix, transforms[str(h)])
+            for ix, h in enumerate(self.headers)
+            if str(h) in transforms.keys()
+        ]
 
     def column(self, ix):
         return [r[ix] for r in self.data]
@@ -228,7 +253,6 @@ class QueryResult(object):
 
 
 class SQLQuery(object):
-
     def __init__(self, cursor, sql, limit):
         self.sql = sql
         self.cursor = cursor
@@ -281,7 +305,6 @@ class SQLQuery(object):
 
 @six.python_2_unicode_compatible
 class ColumnHeader(object):
-
     def __init__(self, title):
         self.title = title.strip()
         self.summary = None
@@ -295,7 +318,6 @@ class ColumnHeader(object):
 
 @six.python_2_unicode_compatible
 class ColumnStat(object):
-
     def __init__(self, label, statfn, precision=2, handles_null=False):
         self.label = label
         self.statfn = statfn
@@ -311,7 +333,6 @@ class ColumnStat(object):
 
 @six.python_2_unicode_compatible
 class ColumnSummary(object):
-
     def __init__(self, header, col):
         self._header = header
         self._stats = [
@@ -319,7 +340,7 @@ class ColumnSummary(object):
             ColumnStat("Avg", lambda x: float(sum(x)) / float(len(x))),
             ColumnStat("Min", min),
             ColumnStat("Max", max),
-            ColumnStat("NUL", lambda x: int(sum(map(lambda y: 1 if y is None else 0, x))), 0, True)
+            ColumnStat("NUL", lambda x: int(sum(map(lambda y: 1 if y is None else 0, x))), 0, True),
         ]
         without_nulls = list(map(lambda x: 0 if x is None else x, col))
 
@@ -340,4 +361,3 @@ class ModelSchema(AbstractModelSchema):
 
 class FieldSchema(AbstractFieldSchema):
     name = models.CharField(max_length=256, unique=True)
-

@@ -1,13 +1,11 @@
-from django.db import DatabaseError
-from django.forms import ModelForm, Field, ValidationError, BooleanField, CharField
+from django.forms import BooleanField, CharField, Field, ModelForm, ValidationError
 from django.forms.widgets import CheckboxInput, Select
 
-from explorer.app_settings import EXPLORER_DEFAULT_CONNECTION, EXPLORER_CONNECTIONS
-from explorer.models import Query, MSG_FAILED_BLACKLIST
+from explorer.app_settings import EXPLORER_CONNECTIONS, EXPLORER_DEFAULT_CONNECTION
+from explorer.models import MSG_FAILED_BLACKLIST, Query
 
 
 class SqlField(Field):
-
     def validate(self, value):
         """
         Ensure that the SQL passes the blacklist.
@@ -22,10 +20,7 @@ class SqlField(Field):
         error = MSG_FAILED_BLACKLIST % ', '.join(failing_words) if not passes_blacklist else None
 
         if error:
-            raise ValidationError(
-                error,
-                code="InvalidSql"
-            )
+            raise ValidationError(error, code="InvalidSql")
 
 
 class QueryForm(ModelForm):

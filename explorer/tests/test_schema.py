@@ -1,12 +1,12 @@
-from django.test import TestCase
-from django.db import connection
-from explorer.app_settings import EXPLORER_CONNECTIONS
-from explorer import schema
 from unittest.mock import patch
+
+from django.test import TestCase
+
+from explorer import schema
+from explorer.app_settings import EXPLORER_CONNECTIONS
 
 
 class TestSchemaInfo(TestCase):
-
     @patch('explorer.schema._get_includes')
     @patch('explorer.schema._get_excludes')
     def test_schema_info_returns_valid_data(self, mocked_excludes, mocked_includes):
@@ -52,4 +52,3 @@ class TestSchemaInfo(TestCase):
     def test_builds_async(self, mocked_async_check):
         mocked_async_check.return_value = True
         self.assertIsNone(schema.schema_info(EXPLORER_CONNECTIONS['Postgres']))
-

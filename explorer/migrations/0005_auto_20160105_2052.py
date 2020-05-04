@@ -15,6 +15,8 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='query',
             name='snapshot',
-            field=models.BooleanField(default=False, help_text='Include in snapshot task (if enabled)'),
+            field=models.BooleanField(
+                default=False, help_text='Include in snapshot task (if enabled)'
+            ),
         ),
     ]
