@@ -10,7 +10,6 @@ except ImportError:
 from django.contrib.auth import REDIRECT_FIELD_NAME  # noqa: I202
 from django.contrib.auth.views import LoginView
 from django.core import serializers
-from django.core.cache import cache
 from django.core.exceptions import FieldDoesNotExist, ImproperlyConfigured
 from django.core.paginator import Paginator
 from django.db import DatabaseError
@@ -531,7 +530,7 @@ class TableBrowserDetailView(PermissionRequiredMixin, ExplorerContextMixin, List
 
         ctx['schema_name'] = self.kwargs['schema']
         ctx['table_name'] = self.kwargs['table']
-        # Sets a tuple of (field name, sorted distinct values) for all fields to allow user to filter
+        # Sets a tuple of (field name, sorted distinct values) for all fields to allow filtering
         ctx['fields'] = [
             (
                 f.name,
