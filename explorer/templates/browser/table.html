@@ -1,0 +1,36 @@
+{% extends "explorer/base.html" %}
+
+{% block sql_explorer_navlinks %}
+    {% if can_change %}
+      <li><a href="{% url "query_create" %}">New Query</a></li>
+      <li><a href="{% url "explorer_playground" %}">Playground</a></li>
+      <li><a href="{% url "explorer_logs" %}">Logs</a></li>
+      <li class="active"><a href="{% url "connection_browser_list" %}">Table browser</a></li>
+    {% endif %}
+{% endblock %}
+
+{% block sql_explorer_content %}
+<a href="{% url "table_browser_list" connection %}">Back to {{ connection }}</a>
+<h3>{{ schema_name }} - {{ table_name }}</h3>
+<div class="table-responsive">
+    <table class="table table-striped query-list">
+        <thead>
+            <tr>
+                {% for field in fields %}
+                  <th>{{ field }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+          {% for object in objects %}
+            <tr>
+                {% for field, value in object.fields.items %}
+                  <th>{{ value }}</th>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+
+        </tbody>
+    </table>
+</div>
+{% endblock %}

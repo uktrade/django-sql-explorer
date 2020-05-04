@@ -10,6 +10,7 @@ except ImportError:
 
 from django.contrib.auth.models import User
 from explorer.app_settings import EXPLORER_DEFAULT_CONNECTION as CONN
+from explorer.app_settings import EXPLORER_CONNECTIONS
 from django.forms.models import model_to_dict
 from django.db import connections
 
@@ -474,7 +475,7 @@ class TestSchemaView(TestCase):
         self.client.login(username='admin', password='pwd')
 
     def test_returns_schema_contents(self):
-        resp = self.client.get(reverse("explorer_schema", kwargs={'connection': CONN}))
+        resp = self.client.get(reverse("explorer_schema", kwargs={'connection': EXPLORER_CONNECTIONS['Postgres']}))
         self.assertContains(resp, "explorer_query")
         self.assertTemplateUsed(resp, 'explorer/schema.html')
 
@@ -484,16 +485,14 @@ class TestSchemaView(TestCase):
 
     def test_admin_required(self):
         self.client.logout()
-        resp = self.client.get(reverse("explorer_schema", kwargs={'connection': CONN}))
+        resp = self.client.get(reverse("explorer_schema", kwargs={'connection': EXPLORER_CONNECTIONS['Postgres']}))
         self.assertTemplateUsed(resp, 'admin/login.html')
 
     @patch('explorer.schema.do_async')
     def test_builds_async(self, mocked_async_check):
         mocked_async_check.return_value = True
-        resp = self.client.get(reverse("explorer_schema", kwargs={'connection': CONN}))
+        resp = self.client.get(reverse("explorer_schema", kwargs={'connection': EXPLORER_CONNECTIONS['Postgres']}))
         self.assertTemplateUsed(resp, 'explorer/schema_building.html')
-        resp = self.client.get(reverse("explorer_schema", kwargs={'connection': CONN}))
-        self.assertTemplateUsed(resp, 'explorer/schema.html')
 
 
 class TestFormat(TestCase):

@@ -1,15 +1,25 @@
-from django.core.cache import cache
-from explorer.utils import get_valid_connection
-from explorer.tasks import build_schema_cache_async
+import logging
+from collections import namedtuple
+
+from sqlalchemy import create_engine
+from sqlalchemy.dialects.postgresql.base import DOUBLE_PRECISION, ENUM, TIMESTAMP, UUID
+from sqlalchemy.dialects.postgresql.array import ARRAY
+from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy.sql.sqltypes import BOOLEAN, DATE, FLOAT, INTEGER, NUMERIC, SMALLINT, TEXT, VARCHAR
+
 from explorer.app_settings import (
-    EXPLORER_SCHEMA_INCLUDE_TABLE_PREFIXES,
-    EXPLORER_SCHEMA_EXCLUDE_TABLE_PREFIXES,
-    EXPLORER_SCHEMA_INCLUDE_VIEWS,
     ENABLE_TASKS,
     EXPLORER_ASYNC_SCHEMA,
-    EXPLORER_CONNECTIONS
+    EXPLORER_CONNECTIONS,
+    EXPLORER_SCHEMA_EXCLUDE_TABLE_PREFIXES,
+    EXPLORER_SCHEMA_INCLUDE_TABLE_PREFIXES,
+    EXPLORER_SCHEMA_INCLUDE_VIEWS,
 )
+from explorer.tasks import build_schema_cache_async
+from explorer.utils import get_valid_connection
 
+
+logger = logging.getLogger(__name__)
 
 # These wrappers make it easy to mock and test
 def _get_includes():
@@ -38,24 +48,47 @@ def connection_schema_cache_key(connection_alias):
     return '_explorer_cache_key_%s' % connection_alias
 
 
-def schema_info(connection_alias):
-    key = connection_schema_cache_key(connection_alias)
-    ret = cache.get(key)
-    if ret:
-        return ret
+def schema_info(connection_alias, schema=None, table=None):
     if do_async():
-        build_schema_cache_async.delay(connection_alias)
+        build_schema_cache_async.delay(connection_alias, schema, table)
     else:
-        return build_schema_cache_async(connection_alias)
+        return build_schema_cache_async(connection_alias, schema, table)
 
 
-def build_schema_info(connection_alias):
+COLUMN_MAPPING = {
+    ENUM: 'CharField',
+    VARCHAR: 'CharField',
+    UUID: 'CharField',
+    TEXT: 'TextField',
+    ARRAY: 'TextField',
+    INTEGER: 'IntegerField',
+    SMALLINT: 'IntegerField',
+    NUMERIC: 'IntegerField',
+    DOUBLE_PRECISION: 'FloatField',
+    FLOAT: 'FloatField',
+    BOOLEAN: 'BooleanField',
+    DATE: 'DateField',
+    TIMESTAMP: 'TimestampField'
+}
+
+Column = namedtuple('Column', ['name', 'type'])
+Table = namedtuple('Table', ['name', 'columns'])
+
+
+class TableName(namedtuple("TableName", ['schema', 'name'])):
+    __slots__ = ()
+
+    def __str__(self):
+        return f'{self.schema}.{self.name}'
+
+
+def build_schema_info(connection_alias, schema=None, table=None):
     """
         Construct schema information via engine-specific queries of the tables in the DB.
 
-        :return: Schema information of the following form, sorted by db_table_name.
+        :return: Schema information of the following form.
             [
-                ("db_table_name",
+                (("db_schema_name", "db_table_name"),
                     [
                         ("db_column_name", "DbFieldType"),
                         (...),
@@ -65,24 +98,34 @@ def build_schema_info(connection_alias):
 
         """
     connection = get_valid_connection(connection_alias)
-    ret = []
-    with connection.cursor() as cursor:
-        tables_to_introspect = connection.introspection.table_names(cursor, include_views=_include_views())
+    engine = create_engine(f'postgresql://{connection.settings_dict["USER"]}:{connection.settings_dict["PASSWORD"]}@{connection.settings_dict["HOST"]}:{connection.settings_dict["PORT"]}/{connection.settings_dict["NAME"]}')
+    insp = Inspector.from_engine(engine)
+    if schema and table:
+        return _get_columns_for_table(insp, schema, table)
 
-        for table_name in tables_to_introspect:
+    schemas = [s for s in insp.get_schema_names() if s not in ['pg_toast', 'pg_temp_1', 'pg_toast_temp_1', 'pg_catalog', 'information_schema']]
+    tables = []
+    for schema in schemas:
+        for table_name in insp.get_table_names(schema=schema):
             if not _include_table(table_name):
                 continue
-            td = []
-            table_description = connection.introspection.get_table_description(cursor, table_name)
-            for row in table_description:
-                column_name = row[0]
-                try:
-                    field_type = connection.introspection.get_field_type(row[1], row)
-                except KeyError as e:
-                    field_type = 'Unknown'
-                td.append((column_name, field_type))
-            ret.append((table_name, td))
-    return ret
+            columns = _get_columns_for_table(insp, schema, table_name)
+            tables.append(Table(TableName(schema, table_name), columns))
+
+    engine.dispose()
+    return tables
+
+
+def _get_columns_for_table(insp, schema, table_name):
+    columns = []
+    cols = insp.get_columns(table_name, schema=schema)
+    for col in cols:
+        try:
+            columns.append(Column(col['name'], COLUMN_MAPPING[type(col['type'])]))
+        except KeyError:
+            logger.info(f'Skipping {col["name"]} as {col["type"]} is not a supported field type')
+            continue
+    return columns
 
 
 def build_async_schemas():

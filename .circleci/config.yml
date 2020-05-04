@@ -9,7 +9,7 @@ job_defaults: &job_defaults
       type: string
 
   environment:
-    DJANGO_SQL_EXPLORER_DATABASE_URL: postgresql://postgres@localhost/postgres
+    DJANGO_SQL_EXPLORER_DATABASE_URL: postgresql://postgres@localhost:5432/postgres
 
   working_directory: ~/app
 

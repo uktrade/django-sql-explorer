@@ -34,7 +34,10 @@ EXPLORER_DEFAULT_ROWS = getattr(settings, 'EXPLORER_DEFAULT_ROWS', 1000)
 EXPLORER_SCHEMA_EXCLUDE_TABLE_PREFIXES = getattr(settings, 'EXPLORER_SCHEMA_EXCLUDE_TABLE_PREFIXES', ('auth_',
                                                                                                       'contenttypes_',
                                                                                                       'sessions_',
-                                                                                                      'admin_'))
+                                                                                                      'admin_',
+                                                                                                      'explorer_',
+                                                                                                      'django',
+                                                                                                      'dynamic_models',))
 
 EXPLORER_SCHEMA_INCLUDE_TABLE_PREFIXES = getattr(settings, 'EXPLORER_SCHEMA_INCLUDE_TABLE_PREFIXES', None)
 EXPLORER_SCHEMA_INCLUDE_VIEWS = getattr(settings, 'EXPLORER_SCHEMA_INCLUDE_VIEWS', False)
@@ -69,3 +72,5 @@ S3_BUCKET = getattr(settings, "EXPLORER_S3_BUCKET", None)
 FROM_EMAIL = getattr(settings, 'EXPLORER_FROM_EMAIL', 'django-sql-explorer@example.com')
 
 UNSAFE_RENDERING = getattr(settings, "EXPLORER_UNSAFE_RENDERING", False)
+
+TABLE_BROWSER_LIMIT = getattr(settings, "EXPLORER_TABLE_BROWSER_LIMIT", 20)

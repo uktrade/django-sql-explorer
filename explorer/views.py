@@ -8,6 +8,8 @@ except ImportError:
     from django.core.urlresolvers import reverse_lazy
 
 import django
+from django.core import serializers
+from django.core.cache import cache
 from django.db import DatabaseError
 from django.db.models import Count
 from django.forms.models import model_to_dict
@@ -16,7 +18,7 @@ from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_POST
 from django.utils.decorators import method_decorator
 from django.views.generic import ListView
-from django.views.generic.base import View
+from django.views.generic.base import TemplateView, View
 from django.views.generic.edit import CreateView, DeleteView
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.core.exceptions import ImproperlyConfigured
@@ -27,7 +29,7 @@ from explorer import app_settings
 from explorer.connections import connections
 from explorer.exporters import get_exporter_class
 from explorer.forms import QueryForm
-from explorer.models import Query, QueryLog, MSG_FAILED_BLACKLIST
+from explorer.models import Query, QueryLog, MSG_FAILED_BLACKLIST, ModelSchema, FieldSchema
 from explorer.tasks import execute_query
 from explorer.utils import (
     url_get_rows,
@@ -405,3 +407,90 @@ def query_viewmodel(user, query, title=None, form=None, message=None, run_query=
         'unsafe_rendering': app_settings.UNSAFE_RENDERING,
     }
     return ret
+
+
+class ConnectionBrowserListView(PermissionRequiredMixin, ExplorerContextMixin, TemplateView):
+    permission_required = 'view_permission'
+    template_name = "browser/connection_list.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['connections'] = app_settings.EXPLORER_CONNECTIONS
+        return context
+
+
+class TableBrowserListView(PermissionRequiredMixin, ExplorerContextMixin, TemplateView):
+
+    permission_required = 'view_permission'
+    template_name = "browser/table_list.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        connection = self.kwargs['connection']
+        context['tables'] = schema_info(connection)
+        context['connection'] = connection
+        return context
+
+
+class TableBrowserDetailView(PermissionRequiredMixin, ExplorerContextMixin, ListView):
+
+    permission_required = 'view_permission'
+    template_name = "browser/table.html"
+    column_mapping = {
+        'CharField': 'character',
+        'TextField': 'text',
+        'IntegerField': 'integer',
+        'FloatField': 'float',
+        'BooleanField': 'boolean',
+        'DateField': 'date',
+        'TimestampField': 'date'
+    }
+
+    def get_model(self):
+        schema = self.kwargs['schema']
+        table = self.kwargs['table']
+
+        columns = schema_info(self.kwargs['connection'], schema, table)
+        table_name = f'"{schema}"."{table}"'
+
+        try:
+            model = ModelSchema.objects.get(name=table_name)
+        except ModelSchema.DoesNotExist:
+            model = ModelSchema.objects.create(name=table_name)
+
+        for column in columns:
+            # Django automatically adds a field called id to all models if a primary key isn't
+            # specified so we need to skip adding this to the dynamic model
+            if column.name == 'id':
+                continue
+            try:
+                field = FieldSchema.objects.get(name=column.name)
+            except FieldSchema.DoesNotExist:
+                field = FieldSchema.objects.create(
+                    name=column.name, data_type=self.column_mapping[column.type]
+                )
+
+            try:
+                model.add_field(field)
+            except:
+                pass
+
+        Model = model.as_model()
+        Model.objects = Model.objects.using(self.kwargs['connection'])
+        Model._meta.db_table = table_name
+
+        return Model
+
+    def get_queryset(self):
+        if not self.model:
+            self.model = self.get_model()
+        return self.model.objects.all()[:app_settings.TABLE_BROWSER_LIMIT]
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['schema_name'] = self.kwargs['schema']
+        ctx['table_name'] = self.kwargs['table']
+        ctx['fields'] = [field.name for field in self.model._meta.get_fields() if field.name != 'id']
+        ctx['objects'] = serializers.serialize('python', self.get_queryset())
+        ctx['connection'] = self.kwargs['connection']
+        return ctx
