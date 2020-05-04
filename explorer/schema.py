@@ -56,7 +56,7 @@ def schema_info(connection_alias, schema=None, table=None):
 
 
 COLUMN_MAPPING = {
-    ENUM: 'Charfield',
+    ENUM: 'CharField',
     VARCHAR: 'CharField',
     UUID: 'CharField',
     TEXT: 'TextField',
