@@ -33,8 +33,10 @@ from explorer.schema import schema_info
 from explorer.utils import (
     allowed_query_pks,
     fmt_sql,
+    get_total_pages,
     url_get_fullscreen,
     url_get_log_id,
+    url_get_page,
     url_get_params,
     url_get_query_id,
     url_get_rows,
@@ -331,6 +333,7 @@ class PlayQueryView(PermissionRequiredMixin, ExplorerContextMixin, View):
 
     def render_with_sql(self, request, query, run_query=True, error=None):
         rows = url_get_rows(request)
+        page = url_get_page(request)
         fullscreen = url_get_fullscreen(request)
         template = 'fullscreen' if fullscreen else 'play'
         form = QueryForm(request.POST if len(request.POST) else None, instance=query)
@@ -343,6 +346,7 @@ class PlayQueryView(PermissionRequiredMixin, ExplorerContextMixin, View):
                 run_query=run_query,
                 error=error,
                 rows=rows,
+                page=page,
                 form=form,
             ),
         )
@@ -357,7 +361,8 @@ class QueryView(PermissionRequiredMixin, ExplorerContextMixin, View):
         query.save()  # updates the modified date
         show = url_get_show(request)
         rows = url_get_rows(request)
-        vm = query_viewmodel(request.user, query, form=form, run_query=show, rows=rows)
+        page = url_get_page(request)
+        vm = query_viewmodel(request.user, query, form=form, run_query=show, rows=rows, page=page)
         fullscreen = url_get_fullscreen(request)
         template = 'fullscreen' if fullscreen else 'query'
         return self.render_template('explorer/%s.html' % template, vm)
@@ -374,6 +379,7 @@ class QueryView(PermissionRequiredMixin, ExplorerContextMixin, View):
             form=form,
             run_query=show,
             rows=url_get_rows(request),
+            page=url_get_page(request),
             message="Query saved." if success else None,
         )
         return self.render_template('explorer/query.html', vm)
@@ -395,12 +401,13 @@ def query_viewmodel(
     run_query=True,
     error=None,
     rows=app_settings.EXPLORER_DEFAULT_ROWS,
+    page=1,
 ):
     res = None
     ql = None
     if run_query:
         try:
-            res, ql = query.execute_with_logging(user)
+            res, ql = query.execute_with_logging(user, page, rows)
         except DatabaseError as e:
             error = str(e)
     has_valid_results = not error and res and run_query
@@ -414,7 +421,8 @@ def query_viewmodel(
         'message': message,
         'error': error,
         'rows': rows,
-        'data': res.data[:rows] if has_valid_results else None,
+        'page': page,
+        'data': res.data if has_valid_results else None,
         'headers': res.headers if has_valid_results else None,
         'total_rows': res.row_count if has_valid_results else None,
         'duration': res.duration if has_valid_results else None,
@@ -423,6 +431,7 @@ def query_viewmodel(
         'ql_id': ql.id if ql else None,
         'unsafe_rendering': app_settings.UNSAFE_RENDERING,
     }
+    ret['total_pages'] = get_total_pages(ret['total_rows'], rows)
     return ret
 
 

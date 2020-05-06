@@ -74,18 +74,20 @@ class Query(models.Model):
     def final_sql(self):
         return swap_params(self.sql, self.available_params())
 
-    def execute_query_only(self):
-        return QueryResult(self.final_sql(), get_valid_connection(self.connection))
+    def execute_query_only(self, page, limit):
+        return QueryResult(
+            self.final_sql(), get_valid_connection(self.connection), page, limit=limit
+        )
 
-    def execute_with_logging(self, executing_user):
+    def execute_with_logging(self, executing_user, page, limit):
         ql = self.log(executing_user)
-        ret = self.execute()
+        ret = self.execute(page, limit)
         ql.duration = ret.duration
         ql.save()
         return ret, ql
 
-    def execute(self):
-        ret = self.execute_query_only()
+    def execute(self, page, limit):
+        ret = self.execute_query_only(page, limit)
         ret.process()
         return ret
 
@@ -167,7 +169,7 @@ class QueryLog(models.Model):
 
 
 class QueryResult(object):
-    def __init__(self, sql, connection, limit=app_settings.EXPLORER_DEFAULT_ROWS):
+    def __init__(self, sql, connection, page, limit=app_settings.EXPLORER_DEFAULT_ROWS):
         self.sql = sql
         self.connection = connection
         self.limit = limit
@@ -177,11 +179,12 @@ class QueryResult(object):
         self._summary = {}
         self._description = None
         self.duration = None
+        self.page = page
         self.execute_query()
 
     def execute_query(self):
         with self.connection.cursor() as cursor:
-            sql_query = SQLQuery(cursor, self.sql, self.limit)
+            sql_query = SQLQuery(cursor, self.sql, self.limit, self.page)
             self._data = sql_query.get_results()
             self._description = sql_query.description
             self._headers = self._get_headers()
@@ -253,7 +256,7 @@ class QueryResult(object):
 
 
 class SQLQuery(object):
-    def __init__(self, cursor, sql, limit):
+    def __init__(self, cursor, sql, limit, page):
         self.sql = sql
         self.cursor = cursor
         self.duration = 0
@@ -261,6 +264,7 @@ class SQLQuery(object):
         self._cursor_name = None
         self._count = 0
         self._description = None
+        self.page = page
 
     @property
     def count(self):
@@ -280,6 +284,9 @@ class SQLQuery(object):
     def _execute(self):
         if self.cursor.db.vendor == POSTGRES_VENDOR:
             self.cursor.execute(f'DECLARE {self.cursor_name} CURSOR WITH HOLD FOR {self.sql}')
+            if self.page and self.page > 1:
+                offset = (self.page - 1) * self.limit
+                self.cursor.execute(f'MOVE {offset} FROM {self.cursor_name}')
             self.cursor.execute(f'FETCH {self.limit} FROM {self.cursor_name}')
         else:
             self.cursor.execute(self.sql)

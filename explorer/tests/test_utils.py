@@ -10,6 +10,7 @@ from explorer.utils import (
     extract_params,
     get_params_for_url,
     get_params_from_request,
+    get_total_pages,
     param,
     passes_blacklist,
     shared_dict_update,
@@ -138,3 +139,22 @@ class TestConnections(TestCase):
 
         self.assertTrue(EXPLORER_DEFAULT_CONNECTION in connections)
         self.assertNotEqual(len(connections), len([c for c in djcs]))
+
+
+class TestGetTotalPages(TestCase):
+    def test_get_total_pages(self):
+        tests = [
+            (None, 10, 1),
+            (10, None, 1),
+            (80, 10, 8),
+            (80, 5, 16),
+            (81, 10, 9),
+            (79, 10, 8),
+        ]
+        for total_rows, page_size, expected_total_pages in tests:
+            actual_result = get_total_pages(total_rows, page_size)
+            self.assertEqual(
+                actual_result,
+                expected_total_pages,
+                msg=f'Total rows {total_rows}, Page size {page_size}',
+            )

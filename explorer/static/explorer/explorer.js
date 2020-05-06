@@ -9,6 +9,7 @@ function ExplorerEditor(queryId) {
     this.queryId = queryId;
     this.$table = $('#preview');
     this.$rows = $('#rows');
+    this.$page = $('#page');
     this.$form = $("form");
     this.$snapshotField = $("#id_snapshot");
     this.$paramFields = this.$form.find(".param");
@@ -103,10 +104,14 @@ ExplorerEditor.prototype.formatSql = function() {
 };
 
 ExplorerEditor.prototype.showRows = function() {
-    var rows = this.$rows.val(),
-        $form = $("#editor");
-    $form.attr('action', this.updateQueryString("rows", rows, window.location.href));
-    $form.submit();
+    var rows = this.$rows.val();
+    var page = this.$page.val();
+
+    form$ = $("#editor");
+    url$ = this.updateQueryString("rows", rows, window.location.href)
+    url$ = this.updateQueryString("page", page, url$)
+    form$.attr('action', url$);
+    form$.submit();
 };
 
 ExplorerEditor.prototype.showSchema = function(noAutofocus) {
@@ -281,6 +286,11 @@ ExplorerEditor.prototype.bind = function() {
 
     this.$rows.change(function() { this.showRows(); }.bind(this));
     this.$rows.keyup(function(event) {
+        if(event.keyCode == 13){ this.showRows(); }
+    }.bind(this));
+
+    this.$page.change(function() { this.showRows(); }.bind(this));
+    this.$page.keyup(function(event) {
         if(event.keyCode == 13){ this.showRows(); }
     }.bind(this));
 };

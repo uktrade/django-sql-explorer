@@ -41,7 +41,7 @@ class BaseExporter(object):
             return str(value)
 
     def get_file_output(self, **kwargs):
-        res = self.query.execute_query_only()
+        res = self.query.execute_query_only(1, app_settings.EXPLORER_DEFAULT_DOWNLOAD_ROWS)
         return self._get_output(res, **kwargs)
 
     def _get_output(self, res, **kwargs):
