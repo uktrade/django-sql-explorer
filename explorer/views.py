@@ -343,7 +343,7 @@ class PlayQueryView(PermissionRequiredMixin, ExplorerContextMixin, View):
                 request.user,
                 query,
                 title="Playground",
-                run_query=run_query,
+                run_query=run_query and form.is_valid(),
                 error=error,
                 rows=rows,
                 page=page,
