@@ -343,7 +343,9 @@ class TestQueryPlayground(TestCase):
         self.assertContains(resp, 'select 1;')
 
     def test_playground_renders_with_posted_sql(self):
-        resp = self.client.post(reverse("explorer_playground"), {'sql': 'select 1+3400;'})
+        resp = self.client.post(
+            reverse("explorer_playground"), {'title': 'test', 'sql': 'select 1+3400;'}
+        )
         self.assertTemplateUsed(resp, 'explorer/play.html')
         self.assertContains(resp, '3401')
 
@@ -584,10 +586,10 @@ class TestQueryLog(TestCase):
         self.client.login(username='admin', password='pwd')
 
     def test_playground_saves_query_to_log(self):
-        self.client.post(reverse("explorer_playground"), {'sql': 'select 1;'})
+        self.client.post(reverse("explorer_playground"), {'title': 'test', 'sql': 'select 1'})
         log = QueryLog.objects.first()
         self.assertTrue(log.is_playground)
-        self.assertEqual(log.sql, 'select 1;')
+        self.assertEqual(log.sql, 'select 1')
 
     # Since it will be saved on the initial query creation, no need to log it
     def test_creating_query_does_not_save_to_log(self):
