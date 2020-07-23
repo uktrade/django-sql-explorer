@@ -118,7 +118,10 @@ class DownloadQueryView(PermissionRequiredMixin, View):
 
     def get(self, request, query_id, *args, **kwargs):
         query = get_object_or_404(Query, pk=query_id)
-        return _export(request, query)
+        resp = _export(request, query)
+        if isinstance(resp, HttpResponse) and resp.status_code == 500 and "Error executing query" in resp.content.decode(resp.charset):
+            return HttpResponseRedirect(reverse_lazy('query_detail', kwargs={'query_id': query_id}))
+        return resp
 
 
 class DownloadFromSqlView(PermissionRequiredMixin, View):
