@@ -401,13 +401,14 @@ def query_viewmodel(
     run_query=True,
     error=None,
     rows=app_settings.EXPLORER_DEFAULT_ROWS,
+    timeout=app_settings.EXPLORER_QUERY_TIMEOUT,
     page=1,
 ):
     res = None
     ql = None
     if run_query:
         try:
-            res, ql = query.execute_with_logging(user, page, rows)
+            res, ql = query.execute_with_logging(user, page, rows, timeout)
         except DatabaseError as e:
             error = str(e)
     has_valid_results = not error and res and run_query

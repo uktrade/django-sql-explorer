@@ -74,22 +74,23 @@ class Query(models.Model):
     def final_sql(self):
         return swap_params(self.sql, self.available_params())
 
-    def execute_query_only(self, page, limit):
-        return QueryResult(
-            self.final_sql(), get_valid_connection(self.connection), page, limit=limit
-        )
-
-    def execute_with_logging(self, executing_user, page, limit):
+    def execute_with_logging(self, executing_user, page, limit, timeout):
         ql = self.log(executing_user)
-        ret = self.execute(page, limit)
+        ret = self.execute(page, limit, timeout)
         ql.duration = ret.duration
         ql.save()
         return ret, ql
 
-    def execute(self, page, limit):
-        ret = self.execute_query_only(page, limit)
-        ret.process()
-        return ret
+    def execute(self, page, limit, timeout):
+        result = QueryResult(
+            self.final_sql(),
+            get_valid_connection(self.connection),
+            page,
+            limit=limit,
+            timeout=timeout
+        )
+        result.process()
+        return result
 
     def available_params(self):
         """
@@ -169,10 +170,11 @@ class QueryLog(models.Model):
 
 
 class QueryResult(object):
-    def __init__(self, sql, connection, page, limit=app_settings.EXPLORER_DEFAULT_ROWS):
+    def __init__(self, sql, connection, page, limit, timeout):
         self.sql = sql
         self.connection = connection
         self.limit = limit
+        self.timeout = timeout
         self._row_count = None
         self._data = []
         self._headers = []
@@ -184,7 +186,7 @@ class QueryResult(object):
 
     def execute_query(self):
         with self.connection.cursor() as cursor:
-            sql_query = SQLQuery(cursor, self.sql, self.limit, self.page)
+            sql_query = SQLQuery(cursor, self.sql, self.limit, self.page, self.timeout)
             self._data = sql_query.get_results()
             self._description = sql_query.description
             self._headers = self._get_headers()
@@ -256,15 +258,16 @@ class QueryResult(object):
 
 
 class SQLQuery(object):
-    def __init__(self, cursor, sql, limit, page):
-        self.sql = sql
+    def __init__(self, cursor, sql, limit, page, timeout):
         self.cursor = cursor
-        self.duration = 0
+        self.sql = sql
         self.limit = limit
+        self.page = page
+        self.timeout = timeout
+        self.duration = 0
         self._cursor_name = None
         self._count = 0
         self._description = None
-        self.page = page
 
     @property
     def count(self):
@@ -283,6 +286,7 @@ class SQLQuery(object):
 
     def _execute(self):
         if self.cursor.db.vendor == POSTGRES_VENDOR:
+            self.cursor.execute(f'SET statement_timeout = {self.timeout}')
             self.cursor.execute(f'DECLARE {self.cursor_name} CURSOR WITH HOLD FOR {self.sql}')
             if self.page and self.page > 1:
                 offset = (self.page - 1) * self.limit

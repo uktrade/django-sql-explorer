@@ -73,7 +73,7 @@ class TestQueryModel(TestCase):
 
     def test_log_saves_duration(self):
         q = SimpleQueryFactory()
-        res, ql = q.execute_with_logging(None, None, 10)
+        res, ql = q.execute_with_logging(None, None, 10, 10000)
         log = QueryLog.objects.first()
         self.assertEqual(log.duration, res.duration)
 
@@ -105,7 +105,7 @@ class TestQueryModel(TestCase):
         from explorer.utils import InvalidExplorerConnectionException
 
         q = SimpleQueryFactory(sql="select '$$foo:bar$$', '$$qux$$';", connection='not_registered')
-        self.assertRaises(InvalidExplorerConnectionException, q.execute_query_only, None, 10)
+        self.assertRaises(InvalidExplorerConnectionException, q.execute, None, 10, 10000)
 
 
 class _AbstractQueryResults:
@@ -114,7 +114,7 @@ class _AbstractQueryResults:
 
     def setUp(self):
         conn = connections[self.connection_name]
-        self.qr = QueryResult(self.query, conn, 1)
+        self.qr = QueryResult(self.query, conn, 1, 1000, 10000)
 
     def test_column_access(self):
         self.qr._data = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
