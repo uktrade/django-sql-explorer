@@ -21,7 +21,7 @@ class TestCsv(TestCase):
             connections[CONN],
             1,
             1000,
-            10000
+            10000,
         )
         res.execute_query()
         res.process()
@@ -44,7 +44,7 @@ class TestJson(TestCase):
             connections[CONN],
             1,
             1000,
-            10000
+            10000,
         )
         res.execute_query()
         res.process()
@@ -60,7 +60,7 @@ class TestJson(TestCase):
             connections[CONN],
             1,
             1000,
-            10000
+            10000,
         )
         res.execute_query()
         res.process()
@@ -87,7 +87,7 @@ class TestExcel(TestCase):
             connections[CONN],
             1,
             1000,
-            10000
+            10000,
         )
         res.execute_query()
         res.process()
@@ -112,7 +112,7 @@ class TestExcel(TestCase):
             connections[CONN],
             1,
             1000,
-            10000
+            10000,
         )
 
         res.execute_query()

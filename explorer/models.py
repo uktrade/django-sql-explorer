@@ -87,7 +87,7 @@ class Query(models.Model):
             get_valid_connection(self.connection),
             page,
             limit=limit,
-            timeout=timeout
+            timeout=timeout,
         )
         result.process()
         return result

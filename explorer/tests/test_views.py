@@ -168,7 +168,7 @@ class TestQueryDetailView(TestCase):
         with self.settings(EXPLORER_TOKEN_AUTH_ENABLED=True):
             resp = self.client.get(
                 reverse("query_detail", kwargs={'query_id': query.id}),
-                **{'HTTP_X_API_TOKEN': EXPLORER_TOKEN}
+                **{'HTTP_X_API_TOKEN': EXPLORER_TOKEN},
             )
         self.assertTemplateUsed(resp, 'explorer/query.html')
         self.assertContains(resp, "124")

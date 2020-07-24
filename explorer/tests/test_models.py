@@ -213,6 +213,6 @@ class TestSQLQuery(TestCase):
         expected_calls = [
             call("SET statement_timeout = 10000"),
             call("DECLARE test_cursor CURSOR WITH HOLD FOR select * from foo"),
-            call("FETCH 100 FROM test_cursor")
+            call("FETCH 100 FROM test_cursor"),
         ]
         mock_execute.assert_has_calls(expected_calls)
