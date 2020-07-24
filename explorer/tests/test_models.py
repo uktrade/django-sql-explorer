@@ -1,11 +1,11 @@
-from unittest.mock import Mock, patch
+from unittest.mock import call, Mock, patch
 
 import six
 from django.db import connections
 from django.test import TestCase
 
 from explorer.app_settings import EXPLORER_DEFAULT_CONNECTION as CONN
-from explorer.models import ColumnHeader, ColumnSummary, Query, QueryLog, QueryResult
+from explorer.models import ColumnHeader, ColumnSummary, Query, QueryLog, QueryResult, SQLQuery
 from explorer.tests.factories import SimpleQueryFactory
 
 
@@ -197,3 +197,22 @@ class TestColumnSummary(TestCase):
     def test_empty_data(self):
         res = ColumnSummary('foo', [])
         self.assertEqual(res.stats, {'Min': 0, 'Max': 0, 'Avg': 0, 'Sum': 0, 'NUL': 0})
+
+
+class TestSQLQuery(TestCase):
+    def test_connection_timeout(self):
+        mock_cursor = Mock()
+        mock_cursor.db.vendor = 'postgresql'
+        mock_execute = Mock()
+        mock_cursor.execute.side_effect = mock_execute
+
+        query = SQLQuery(mock_cursor, "select * from foo", 100, 1, 10000)
+        query._cursor_name = "test_cursor"
+        query.execute()
+
+        expected_calls = [
+            call("SET statement_timeout = 10000"),
+            call("DECLARE test_cursor CURSOR WITH HOLD FOR select * from foo"),
+            call("FETCH 100 FROM test_cursor")
+        ]
+        mock_execute.assert_has_calls(expected_calls)
