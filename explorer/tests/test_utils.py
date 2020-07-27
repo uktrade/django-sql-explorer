@@ -48,6 +48,12 @@ class TestSqlBlacklist(TestCase):
         self.assertEqual(words[0], 'DROP')
         self.assertEqual(words[1], 'DELETE')
 
+    def test_blacklist_only_works_with_whole_words(self):
+        # This contains the word alter but should not be flagged
+        sql = "SELECT alternative from table;"
+        passes, words = passes_blacklist(sql)
+        self.assertTrue(passes)
+
     def test_queries_dropping_views_is_not_ok_and_not_case_sensitive(self):
         sql = "SELECT 1+1 AS TWO; drop ViEw foo;"
         self.assertFalse(passes_blacklist(sql)[0])

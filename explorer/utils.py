@@ -18,7 +18,12 @@ def passes_blacklist(sql):
         [t.upper() for t in app_settings.EXPLORER_SQL_WHITELIST],
         sql,
     )
-    fails = [bl_word for bl_word in app_settings.EXPLORER_SQL_BLACKLIST if bl_word in clean.upper()]
+    all_words_regex = r'\b\S+\b'
+    fails = [
+        bl_word
+        for bl_word in app_settings.EXPLORER_SQL_BLACKLIST
+        if bl_word in re.findall(all_words_regex, clean)
+    ]
     return not any(fails), fails
 
 
