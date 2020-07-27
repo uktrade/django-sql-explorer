@@ -42,7 +42,7 @@ class BaseExporter(object):
 
     def get_file_output(self, **kwargs):
         res = self.query.execute(
-            1, app_settings.EXPLORER_DEFAULT_DOWNLOAD_ROWS, app_settings.EXPLORER_QUERY_TIMEOUT
+            1, app_settings.EXPLORER_DEFAULT_DOWNLOAD_ROWS, app_settings.EXPLORER_QUERY_TIMEOUT_MS
         )
         return self._get_output(res, **kwargs)
 

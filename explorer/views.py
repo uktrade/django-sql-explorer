@@ -410,7 +410,7 @@ def query_viewmodel(
     run_query=True,
     error=None,
     rows=app_settings.EXPLORER_DEFAULT_ROWS,
-    timeout=app_settings.EXPLORER_QUERY_TIMEOUT,
+    timeout=app_settings.EXPLORER_QUERY_TIMEOUT_MS,
     page=1,
 ):
     res = None
