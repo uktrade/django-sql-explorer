@@ -119,7 +119,11 @@ class DownloadQueryView(PermissionRequiredMixin, View):
     def get(self, request, query_id, *args, **kwargs):
         query = get_object_or_404(Query, pk=query_id)
         resp = _export(request, query)
-        if isinstance(resp, HttpResponse) and resp.status_code == 500 and "Error executing query" in resp.content.decode(resp.charset):
+        if (
+            isinstance(resp, HttpResponse)
+            and resp.status_code == 500
+            and "Error executing query" in resp.content.decode(resp.charset)
+        ):
             return HttpResponseRedirect(reverse_lazy('query_detail', kwargs={'query_id': query_id}))
         return resp
 
@@ -259,11 +263,12 @@ class ListQueryView(PermissionRequiredMixin, ExplorerContextMixin, ListView):
                     'created_at': q.created_at,
                     'is_header': False,
                     'run_count': q.run_count,
-                    'created_by_user': six.text_type(q.created_by_user)
+                    'created_by_user': six.text_type(q.created_by_user.email)
                     if q.created_by_user
                     else None,
                 }
             )
+
             dict_list.append(model_dict)
         return dict_list
 
