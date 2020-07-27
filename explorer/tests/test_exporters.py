@@ -17,7 +17,11 @@ from explorer.tests.factories import SimpleQueryFactory
 class TestCsv(TestCase):
     def test_writing_unicode(self):
         res = QueryResult(
-            SimpleQueryFactory(sql='select 1 as "a", 2 as ""').sql, connections[CONN], 1
+            SimpleQueryFactory(sql='select 1 as "a", 2 as ""').sql,
+            connections[CONN],
+            1,
+            1000,
+            10000,
         )
         res.execute_query()
         res.process()
@@ -36,7 +40,11 @@ class TestCsv(TestCase):
 class TestJson(TestCase):
     def test_writing_json(self):
         res = QueryResult(
-            SimpleQueryFactory(sql='select 1 as "a", 2 as ""').sql, connections[CONN], 1
+            SimpleQueryFactory(sql='select 1 as "a", 2 as ""').sql,
+            connections[CONN],
+            1,
+            1000,
+            10000,
         )
         res.execute_query()
         res.process()
@@ -48,7 +56,11 @@ class TestJson(TestCase):
 
     def test_writing_datetimes(self):
         res = QueryResult(
-            SimpleQueryFactory(sql='select 1 as "a", 2 as "b"').sql, connections[CONN], 1
+            SimpleQueryFactory(sql='select 1 as "a", 2 as "b"').sql,
+            connections[CONN],
+            1,
+            1000,
+            10000,
         )
         res.execute_query()
         res.process()
@@ -74,6 +86,8 @@ class TestExcel(TestCase):
             ).sql,
             connections[CONN],
             1,
+            1000,
+            10000,
         )
         res.execute_query()
         res.process()
@@ -97,6 +111,8 @@ class TestExcel(TestCase):
             ).sql,
             connections[CONN],
             1,
+            1000,
+            10000,
         )
 
         res.execute_query()

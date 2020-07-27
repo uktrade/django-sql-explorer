@@ -1,11 +1,11 @@
-from unittest.mock import Mock, patch
+from unittest.mock import call, Mock, patch
 
 import six
 from django.db import connections
 from django.test import TestCase
 
 from explorer.app_settings import EXPLORER_DEFAULT_CONNECTION as CONN
-from explorer.models import ColumnHeader, ColumnSummary, Query, QueryLog, QueryResult
+from explorer.models import ColumnHeader, ColumnSummary, Query, QueryLog, QueryResult, SQLQuery
 from explorer.tests.factories import SimpleQueryFactory
 
 
@@ -73,7 +73,7 @@ class TestQueryModel(TestCase):
 
     def test_log_saves_duration(self):
         q = SimpleQueryFactory()
-        res, ql = q.execute_with_logging(None, None, 10)
+        res, ql = q.execute_with_logging(None, None, 10, 10000)
         log = QueryLog.objects.first()
         self.assertEqual(log.duration, res.duration)
 
@@ -105,7 +105,7 @@ class TestQueryModel(TestCase):
         from explorer.utils import InvalidExplorerConnectionException
 
         q = SimpleQueryFactory(sql="select '$$foo:bar$$', '$$qux$$';", connection='not_registered')
-        self.assertRaises(InvalidExplorerConnectionException, q.execute_query_only, None, 10)
+        self.assertRaises(InvalidExplorerConnectionException, q.execute, None, 10, 10000)
 
 
 class _AbstractQueryResults:
@@ -114,7 +114,7 @@ class _AbstractQueryResults:
 
     def setUp(self):
         conn = connections[self.connection_name]
-        self.qr = QueryResult(self.query, conn, 1)
+        self.qr = QueryResult(self.query, conn, 1, 1000, 10000)
 
     def test_column_access(self):
         self.qr._data = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
@@ -197,3 +197,22 @@ class TestColumnSummary(TestCase):
     def test_empty_data(self):
         res = ColumnSummary('foo', [])
         self.assertEqual(res.stats, {'Min': 0, 'Max': 0, 'Avg': 0, 'Sum': 0, 'NUL': 0})
+
+
+class TestSQLQuery(TestCase):
+    def test_connection_timeout(self):
+        mock_cursor = Mock()
+        mock_cursor.db.vendor = 'postgresql'
+        mock_execute = Mock()
+        mock_cursor.execute.side_effect = mock_execute
+
+        query = SQLQuery(mock_cursor, "select * from foo", 100, 1, 10000)
+        query._cursor_name = "test_cursor"
+        query.execute()
+
+        expected_calls = [
+            call("SET statement_timeout = 10000"),
+            call("DECLARE test_cursor CURSOR WITH HOLD FOR select * from foo"),
+            call("FETCH 100 FROM test_cursor"),
+        ]
+        mock_execute.assert_has_calls(expected_calls)
