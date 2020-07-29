@@ -1,4 +1,3 @@
-import functools
 import re
 
 import sqlparse
@@ -10,16 +9,6 @@ from six import text_type
 from explorer import app_settings
 
 EXPLORER_PARAM_TOKEN = "$$"
-
-
-def passes_blacklist(sql):
-    clean = functools.reduce(
-        lambda sql, term: sql.upper().replace(term, ""),
-        [t.upper() for t in app_settings.EXPLORER_SQL_WHITELIST],
-        sql,
-    )
-    fails = [bl_word for bl_word in app_settings.EXPLORER_SQL_BLACKLIST if bl_word in clean.upper()]
-    return not any(fails), fails
 
 
 def _format_field(field):

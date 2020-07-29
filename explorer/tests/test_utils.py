@@ -2,8 +2,6 @@ from unittest.mock import Mock
 
 from django.test import TestCase
 
-from explorer import app_settings
-from explorer.actions import generate_report_action
 from explorer.tests.factories import SimpleQueryFactory
 from explorer.utils import (
     EXPLORER_PARAM_TOKEN,
@@ -12,50 +10,9 @@ from explorer.utils import (
     get_params_from_request,
     get_total_pages,
     param,
-    passes_blacklist,
     shared_dict_update,
     swap_params,
 )
-
-
-class TestSqlBlacklist(TestCase):
-    def setUp(self):
-        self.orig = app_settings.EXPLORER_SQL_BLACKLIST
-        self.orig_wl = app_settings.EXPLORER_SQL_WHITELIST
-
-    def tearDown(self):
-        app_settings.EXPLORER_SQL_BLACKLIST = self.orig
-        app_settings.EXPLORER_SQL_WHITELIST = self.orig_wl
-
-    def test_overriding_blacklist(self):
-        app_settings.EXPLORER_SQL_BLACKLIST = []
-        r = SimpleQueryFactory(sql="SELECT 1+1 AS \"DELETE\";")
-        fn = generate_report_action()
-        result = fn(None, None, [r])
-        self.assertEqual(result.content, b'DELETE\r\n2\r\n')
-
-    def test_default_blacklist_prevents_deletes(self):
-        r = SimpleQueryFactory(sql="SELECT 1+1 AS \"DELETE\";")
-        fn = generate_report_action()
-        result = fn(None, None, [r])
-        self.assertEqual(result.content.decode('utf-8'), '0')
-
-    def test_queries_deleting_stuff_are_not_ok(self):
-        sql = "'distraction'; deLeTe from table; SELECT 1+1 AS TWO; drop view foo;"
-        passes, words = passes_blacklist(sql)
-        self.assertFalse(passes)
-        self.assertTrue(len(words), 2)
-        self.assertEqual(words[0], 'DROP')
-        self.assertEqual(words[1], 'DELETE')
-
-    def test_queries_dropping_views_is_not_ok_and_not_case_sensitive(self):
-        sql = "SELECT 1+1 AS TWO; drop ViEw foo;"
-        self.assertFalse(passes_blacklist(sql)[0])
-
-    def test_sql_whitelist_ok(self):
-        app_settings.EXPLORER_SQL_WHITELIST = ['dropper']
-        sql = "SELECT 1+1 AS TWO; dropper ViEw foo;"
-        self.assertTrue(passes_blacklist(sql)[0])
 
 
 class TestParams(TestCase):

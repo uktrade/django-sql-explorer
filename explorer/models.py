@@ -20,12 +20,10 @@ from explorer.utils import (
     get_params_for_url,
     get_s3_bucket,
     get_valid_connection,
-    passes_blacklist,
     shared_dict_update,
     swap_params,
 )
 
-MSG_FAILED_BLACKLIST = "Query failed the SQL blacklist: %s"
 POSTGRES_VENDOR = 'postgresql'
 
 logger = logging.getLogger(__name__)
@@ -67,9 +65,6 @@ class Query(models.Model):
 
     def avg_duration(self):
         return self.querylog_set.aggregate(models.Avg('duration'))['duration__avg']
-
-    def passes_blacklist(self):
-        return passes_blacklist(self.final_sql())
 
     def final_sql(self):
         return swap_params(self.sql, self.available_params())

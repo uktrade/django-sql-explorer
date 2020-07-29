@@ -11,7 +11,7 @@ class TestFormValidation(TestCase):
         form = QueryForm(model_to_dict(q))
         self.assertTrue(form.is_valid())
 
-    def test_form_fails_blacklist(self):
+    def test_form_is_invalid_with_non_select_statement(self):
         q = SimpleQueryFactory(sql="delete $$a$$;", created_by_user_id=None)
         q.params = {}
         form = QueryForm(model_to_dict(q))

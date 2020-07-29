@@ -28,7 +28,7 @@ from explorer import app_settings, permissions
 from explorer.connections import connections
 from explorer.exporters import get_exporter_class
 from explorer.forms import QueryForm
-from explorer.models import FieldSchema, ModelSchema, MSG_FAILED_BLACKLIST, Query, QueryLog
+from explorer.models import FieldSchema, ModelSchema, Query, QueryLog
 from explorer.schema import schema_info
 from explorer.utils import (
     allowed_query_pks,
@@ -329,10 +329,8 @@ class PlayQueryView(PermissionRequiredMixin, ExplorerContextMixin, View):
         sql = request.POST.get('sql')
         show = url_get_show(request)
         query = Query(sql=sql, title="Playground", connection=request.POST.get('connection'))
-        passes_blacklist, failing_words = query.passes_blacklist()
-        error = MSG_FAILED_BLACKLIST % ', '.join(failing_words) if not passes_blacklist else None
-        run_query = not bool(error) if show else False
-        return self.render_with_sql(request, query, run_query=run_query, error=error)
+        run_query = True if show else False
+        return self.render_with_sql(request, query, run_query=run_query, error=None)
 
     def render(self):
         return self.render_template(

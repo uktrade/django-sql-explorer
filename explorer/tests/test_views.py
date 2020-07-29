@@ -4,7 +4,6 @@ from unittest.mock import Mock, patch
 
 from django.contrib.auth.models import User
 from django.core.cache import cache
-from django.db import connections
 from django.forms.models import model_to_dict
 from django.test import TestCase
 
@@ -15,10 +14,9 @@ except ImportError:
 
 from explorer.app_settings import (
     EXPLORER_CONNECTIONS,
-    EXPLORER_DEFAULT_CONNECTION as CONN,
     EXPLORER_TOKEN,
 )
-from explorer.models import MSG_FAILED_BLACKLIST, Query, QueryLog
+from explorer.models import Query, QueryLog
 from explorer.tests.factories import QueryLogFactory, SimpleQueryFactory
 from explorer.utils import user_can_see_query
 
@@ -79,6 +77,24 @@ class TestQueryCreateView(TestCase):
         self.assertTemplateUsed(resp, 'explorer/query.html')
         self.assertContains(resp, "New Query")
 
+    def test_valid_query(self):
+        self.client.login(username='admin', password='pwd')
+        query = SimpleQueryFactory.build(sql='SELECT * FROM foo;')
+        data = model_to_dict(query)
+        del data['id']
+        del data['created_by_user']
+        self.client.post(reverse("query_create"), data)
+        self.assertEqual(Query.objects.all()[0].sql, 'SELECT * FROM foo;')
+
+    def test_invalid_query(self):
+        self.client.login(username='admin', password='pwd')
+        query = SimpleQueryFactory.build(sql='DELETE FROM foo;')
+        data = model_to_dict(query)
+        del data['id']
+        del data['created_by_user']
+        self.client.post(reverse("query_create"), data)
+        self.assertEquals(len(Query.objects.all()), 0)
+
 
 class TestQueryDetailView(TestCase):
     databases = ['default', 'alt']
@@ -87,19 +103,13 @@ class TestQueryDetailView(TestCase):
         self.user = User.objects.create_superuser('admin', 'admin@admin.com', 'pwd')
         self.client.login(username='admin', password='pwd')
 
-    def test_query_with_bad_sql_renders_error(self):
-        query = SimpleQueryFactory(sql="error")
-        resp = self.client.get(reverse("query_detail", kwargs={'query_id': query.id}))
-        self.assertTemplateUsed(resp, 'explorer/query.html')
-        self.assertContains(resp, "syntax error")
-
-    def test_query_with_bad_sql_renders_error_on_save(self):
+    def test_query_with_bad_sql_fails_on_save(self):
         query = SimpleQueryFactory(sql="select 1;")
         resp = self.client.post(
             reverse("query_detail", kwargs={'query_id': query.id}), data={'sql': 'error'}
         )
         self.assertTemplateUsed(resp, 'explorer/query.html')
-        self.assertContains(resp, "syntax error")
+        self.assertContains(resp, "Only SELECT statements are supported")
 
     def test_posting_query_saves_correctly(self):
         expected = 'select 2;'
@@ -221,20 +231,6 @@ class TestQueryDetailView(TestCase):
         resp = self.client.get(reverse("query_detail", kwargs={'query_id': query.id}))
         self.assertContains(resp, '2015-01-01')
         self.assertContains(resp, '2015-01-02')
-
-    def test_failing_blacklist_means_query_doesnt_execute(self):
-        conn = connections[CONN]
-        start = len(conn.queries)
-        query = SimpleQueryFactory(sql="select 1;")
-        resp = self.client.post(
-            reverse("query_detail", kwargs={'query_id': query.id}), data={'sql': "select 'delete';"}
-        )
-        end = len(conn.queries)
-
-        self.assertTemplateUsed(resp, 'explorer/query.html')
-        self.assertContains(resp, MSG_FAILED_BLACKLIST % '')
-
-        self.assertEqual(start, end)
 
     def test_fullscreen(self):
         query = SimpleQueryFactory(sql="select 1;")
@@ -376,11 +372,6 @@ class TestQueryPlayground(TestCase):
         querylog = QueryLogFactory()
         resp = self.client.get('%s?querylog_id=%s' % (reverse("explorer_playground"), querylog.id))
         self.assertContains(resp, "FOUR")
-
-    def test_fails_blacklist(self):
-        resp = self.client.post(reverse("explorer_playground"), {'sql': "select 'delete'"})
-        self.assertTemplateUsed(resp, 'explorer/play.html')
-        self.assertContains(resp, MSG_FAILED_BLACKLIST % '')
 
     def test_fullscreen(self):
         query = SimpleQueryFactory(sql="")

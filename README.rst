@@ -66,11 +66,6 @@ Features
       execute queries. Other users cannot access any part of
       Explorer. Both permission groups are set to is_staff by default
       and can be overridden in your settings file.
-    - Enforces a SQL blacklist so destructive queries don't get
-      executed (delete, drop, alter, update etc). This is not
-      bulletproof and it's recommended that you instead configure a
-      read-only database role, but when not possible the blacklist
-      provides reasonable protection.
 - **Easy to get started**
     - Built on Django's ORM, so works with Postgresql, Mysql, and
       Sqlite. And, between you and me, it works fine on RedShift as
@@ -362,8 +357,6 @@ Settings
 ======================================= =============================================================================================================== ================================================================================================================================================
 Setting                                 Description                                                                                                                                                  Default
 ======================================= =============================================================================================================== ================================================================================================================================================
-EXPLORER_SQL_BLACKLIST                  Disallowed words in SQL queries to prevent destructive actions.                                                 ('ALTER', 'RENAME ', 'DROP', 'TRUNCATE', 'INSERT INTO', 'UPDATE', 'REPLACE', 'DELETE', 'ALTER', 'CREATE TABLE', 'SCHEMA', 'GRANT', 'OWNER TO')
-EXPLORER_SQL_WHITELIST                  These phrases are allowed, even though part of the phrase appears in the blacklist.                             ('CREATED', 'UPDATED', 'DELETED','REGEXP_REPLACE')
 EXPLORER_DEFAULT_ROWS                   The number of rows to show by default in the preview pane.                                                      1000
 EXPLORER_SCHEMA_INCLUDE_TABLE_PREFIXES  If not None, show schema only for tables starting with these prefixes. "Wins" if in conflict with EXCLUDE       None  # shows all tables
 EXPLORER_SCHEMA_EXCLUDE_TABLE_PREFIXES  Don't show schema for tables starting with these prefixes, in the schema helper.                                ('django.contrib.auth', 'django.contrib.contenttypes', 'django.contrib.sessions', 'django.contrib.admin')
