@@ -108,21 +108,33 @@ def build_schema_info(connection_alias, schema=None, table=None):
     if schema and table:
         return _get_columns_for_table(insp, schema, table)
 
-    schemas = [
-        s
-        for s in insp.get_schema_names()
-        if s not in ['pg_toast', 'pg_temp_1', 'pg_toast_temp_1', 'pg_catalog', 'information_schema']
-    ]
     tables = []
-    for schema in schemas:
-        for table_name in insp.get_table_names(schema=schema):
-            if not _include_table(table_name):
-                continue
-            columns = _get_columns_for_table(insp, schema, table_name)
-            tables.append(Table(TableName(schema, table_name), columns))
+    schemas_and_tables = _get_accessible_schemas_and_tables(connection)
+    for schema, table_name in schemas_and_tables:
+        if not _include_table(table_name):
+            continue
+
+        columns = _get_columns_for_table(insp, schema, table_name)
+        tables.append(Table(TableName(schema, table_name), columns))
 
     engine.dispose()
     return tables
+
+
+def _get_accessible_schemas_and_tables(conn):
+    with conn.cursor() as cursor:
+        cursor.execute(
+            f"""
+SELECT table_schema, table_name
+FROM information_schema.tables
+WHERE table_schema not in %s
+ORDER BY table_schema, table_name;
+""",
+            [('pg_toast', 'pg_temp_1', 'pg_toast_temp_1', 'pg_catalog', 'information_schema')],
+        )
+        schemas_and_tables = cursor.fetchall()
+
+    return schemas_and_tables
 
 
 def _get_columns_for_table(insp, schema, table_name):

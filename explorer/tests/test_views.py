@@ -480,6 +480,8 @@ class TestSQLDownloadViews(TestCase):
 
 
 class TestSchemaView(TestCase):
+    databases = ['default', 'postgres']
+
     def setUp(self):
         cache.clear()
         self.user = User.objects.create_superuser('admin', 'admin@admin.com', 'pwd')
