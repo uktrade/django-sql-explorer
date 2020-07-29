@@ -11,29 +11,6 @@ from django.conf import settings
 EXPLORER_CONNECTIONS = getattr(settings, 'EXPLORER_CONNECTIONS', {})
 EXPLORER_DEFAULT_CONNECTION = getattr(settings, 'EXPLORER_DEFAULT_CONNECTION', None)
 
-# Change the behavior of explorer
-EXPLORER_SQL_BLACKLIST = getattr(
-    settings,
-    'EXPLORER_SQL_BLACKLIST',
-    (
-        'ALTER',
-        'RENAME ',
-        'DROP',
-        'TRUNCATE',
-        'INSERT INTO',
-        'UPDATE',
-        'REPLACE',
-        'DELETE',
-        'CREATE TABLE',
-        'GRANT',
-        'OWNER TO',
-    ),
-)
-
-EXPLORER_SQL_WHITELIST = getattr(
-    settings, 'EXPLORER_SQL_WHITELIST', ('CREATED', 'UPDATED', 'DELETED', 'REGEXP_REPLACE')
-)
-
 EXPLORER_DEFAULT_ROWS = getattr(settings, 'EXPLORER_DEFAULT_ROWS', 1000)
 EXPLORER_QUERY_TIMEOUT_MS = getattr(settings, 'EXPLORER_QUERY_TIMEOUT_MS', 60000)
 EXPLORER_DEFAULT_DOWNLOAD_ROWS = getattr(settings, 'EXPLORER_DEFAULT_DOWNLOAD_ROWS', 1000)

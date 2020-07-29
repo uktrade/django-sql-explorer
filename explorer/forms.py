@@ -2,25 +2,13 @@ from django.forms import BooleanField, CharField, Field, ModelForm, ValidationEr
 from django.forms.widgets import CheckboxInput, Select
 
 from explorer.app_settings import EXPLORER_CONNECTIONS, EXPLORER_DEFAULT_CONNECTION
-from explorer.models import MSG_FAILED_BLACKLIST, Query
+from explorer.models import Query
 
 
 class SqlField(Field):
     def validate(self, value):
-        """
-        Ensure that the SQL passes the blacklist.
-
-        :param value: The SQL for this Query model.
-        """
-
-        query = Query(sql=value)
-
-        passes_blacklist, failing_words = query.passes_blacklist()
-
-        error = MSG_FAILED_BLACKLIST % ', '.join(failing_words) if not passes_blacklist else None
-
-        if error:
-            raise ValidationError(error, code="InvalidSql")
+        if not value.upper().startswith("SELECT"):
+            raise ValidationError("Only SELECT statements are supported", code="InvalidSql")
 
 
 class QueryForm(ModelForm):

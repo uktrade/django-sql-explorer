@@ -11,8 +11,7 @@ from explorer.exporters import CSVExporter
 
 def generate_report_action(description="Generate CSV file from SQL query"):
     def generate_report(modeladmin, request, queryset):
-        results = [report for report in queryset if report.passes_blacklist()[0]]
-        queries = (len(results) > 0 and _package(results)) or defaultdict(int)
+        queries = (len(queryset) > 0 and _package(queryset)) or defaultdict(int)
         response = HttpResponse(queries["data"], content_type=queries["content_type"])
         response['Content-Disposition'] = queries["filename"]
         response['Content-Length'] = queries["length"]
