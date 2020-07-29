@@ -7,6 +7,8 @@ from explorer.app_settings import EXPLORER_CONNECTIONS
 
 
 class TestSchemaInfo(TestCase):
+    databases = ['postgres']
+
     @patch('explorer.schema._get_includes')
     @patch('explorer.schema._get_excludes')
     def test_schema_info_returns_valid_data(self, mocked_excludes, mocked_includes):
