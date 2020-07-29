@@ -7,8 +7,9 @@ from explorer.models import Query
 
 class SqlField(Field):
     def validate(self, value):
-        if not value.upper().startswith("SELECT"):
-            raise ValidationError("Only SELECT statements are supported", code="InvalidSql")
+        query = value.strip().upper()
+        if not any([query.startswith("SELECT"), query.startswith("WITH")]):
+            raise ValidationError("Only SELECT/WITH statements are supported", code="InvalidSql")
 
 
 class QueryForm(ModelForm):
