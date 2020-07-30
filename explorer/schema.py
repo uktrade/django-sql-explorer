@@ -1,11 +1,25 @@
 import logging
 from collections import namedtuple
 
+# Needed for sqlalchemy to understand geometry columns
+from geoalchemy2 import Geometry
 from sqlalchemy import create_engine
 from sqlalchemy.dialects.postgresql.array import ARRAY
 from sqlalchemy.dialects.postgresql.base import DOUBLE_PRECISION, ENUM, TIMESTAMP, UUID
 from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.sql.sqltypes import BOOLEAN, DATE, FLOAT, INTEGER, NUMERIC, SMALLINT, TEXT, VARCHAR
+from sqlalchemy.sql.sqltypes import (
+    BIGINT,
+    BOOLEAN,
+    CHAR,
+    DATE,
+    FLOAT,
+    INTEGER,
+    NUMERIC,
+    SMALLINT,
+    String,
+    TEXT,
+    VARCHAR,
+)
 
 from explorer.app_settings import (
     ENABLE_TASKS,
@@ -17,7 +31,6 @@ from explorer.app_settings import (
 )
 from explorer.tasks import build_schema_cache_async
 from explorer.utils import get_valid_connection
-
 
 logger = logging.getLogger(__name__)
 
@@ -58,18 +71,22 @@ def schema_info(connection_alias, schema=None, table=None):
 
 COLUMN_MAPPING = {
     ENUM: 'CharField',
+    CHAR: 'CharField',
     VARCHAR: 'CharField',
+    String: 'CharField',
     UUID: 'CharField',
     TEXT: 'TextField',
     ARRAY: 'TextField',
     INTEGER: 'IntegerField',
     SMALLINT: 'IntegerField',
+    BIGINT: 'IntegerField',
     NUMERIC: 'FloatField',
     DOUBLE_PRECISION: 'FloatField',
     FLOAT: 'FloatField',
     BOOLEAN: 'BooleanField',
     DATE: 'DateField',
     TIMESTAMP: 'TimestampField',
+    Geometry: 'GeometryField',
 }
 
 Column = namedtuple('Column', ['name', 'type'])
@@ -144,7 +161,10 @@ def _get_columns_for_table(insp, schema, table_name):
         try:
             columns.append(Column(col['name'], COLUMN_MAPPING[type(col['type'])]))
         except KeyError:
-            logger.info(f'Skipping {col["name"]} as {col["type"]} is not a supported field type')
+            logger.info(
+                f'Skipping {col["name"]} as {col["type"]} ({type(col["type"])} '
+                f'is not a supported field type'
+            )
             continue
     return columns
 
