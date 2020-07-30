@@ -52,6 +52,7 @@ setup(
         'six>=1.10.0',
         'django-dynamic-models-readonly>=0.1.1',
         'sqlalchemy>=1.3.15',
+        'geoalchemy2>=0.8.4',
     ],
     include_package_data=True,
     zip_safe=False,
