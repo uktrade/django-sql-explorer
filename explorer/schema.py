@@ -1,8 +1,8 @@
 import logging
 from collections import namedtuple
 
-# Needed for sqlalchemy to understand geometry columns
-from geoalchemy2 import Geometry
+from django.core.cache import cache
+from geoalchemy2 import Geometry  # Needed for sqlalchemy to understand geometry columns
 from sqlalchemy import create_engine
 from sqlalchemy.dialects.postgresql.array import ARRAY
 from sqlalchemy.dialects.postgresql.base import DOUBLE_PRECISION, ENUM, TIMESTAMP, UUID
@@ -63,6 +63,10 @@ def connection_schema_cache_key(connection_alias):
 
 
 def schema_info(connection_alias, schema=None, table=None):
+    key = connection_schema_cache_key(connection_alias)
+    ret = cache.get(key)
+    if ret:
+        return ret
     if do_async():
         build_schema_cache_async.delay(connection_alias, schema, table)
     else:

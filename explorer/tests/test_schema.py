@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from django.core.cache import cache
 from django.test import TestCase
 
 from explorer import schema
@@ -8,6 +9,9 @@ from explorer.app_settings import EXPLORER_CONNECTIONS
 
 class TestSchemaInfo(TestCase):
     databases = ['postgres']
+
+    def setUp(self):
+        cache.clear()
 
     @patch('explorer.schema._get_includes')
     @patch('explorer.schema._get_excludes')

@@ -1,5 +1,7 @@
 from datetime import date, datetime, timedelta
 
+from django.core.cache import cache
+
 from explorer import app_settings
 from explorer.exporters import get_exporter_class
 from explorer.models import Query, QueryLog
@@ -52,6 +54,8 @@ def truncate_querylogs(days):
 
 @task
 def build_schema_cache_async(connection_alias, schema=None, table=None):
-    from .schema import build_schema_info
+    from .schema import build_schema_info, connection_schema_cache_key
 
-    return build_schema_info(connection_alias, schema, table)
+    ret = build_schema_info(connection_alias, schema, table)
+    cache.set(connection_schema_cache_key(connection_alias), ret)
+    return ret
