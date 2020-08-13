@@ -296,7 +296,28 @@ class CreateQueryView(PermissionRequiredMixin, ExplorerContextMixin, CreateView)
 
     def form_valid(self, form):
         form.instance.created_by_user = self.request.user
-        return super(CreateQueryView, self).form_valid(form)
+        return super().form_valid(form)
+
+    def post(self, request):
+        ret = super().post(request)
+        if self.get_form().is_valid():
+            show = url_get_show(request)
+            query, form = QueryView.get_instance_and_form(request, self.object.id)
+            success = form.is_valid() and form.save()
+            vm = query_viewmodel(
+                request.user,
+                query,
+                form=form,
+                run_query=show,
+                rows=url_get_rows(request),
+                page=url_get_page(request),
+                message="Query created." if success else None,
+                log=False,
+            )
+            if vm['form'].errors:
+                self.object.delete()
+            return self.render_template('explorer/query.html', vm)
+        return ret
 
     form_class = QueryForm
     template_name = 'explorer/query.html'
@@ -330,14 +351,14 @@ class PlayQueryView(PermissionRequiredMixin, ExplorerContextMixin, View):
         show = url_get_show(request)
         query = Query(sql=sql, title="Playground", connection=request.POST.get('connection'))
         run_query = True if show else False
-        return self.render_with_sql(request, query, run_query=run_query, error=None)
+        return self.render_with_sql(request, query, run_query=run_query)
 
     def render(self):
         return self.render_template(
             'explorer/play.html', {'title': 'Playground', 'form': QueryForm()}
         )
 
-    def render_with_sql(self, request, query, run_query=True, error=None):
+    def render_with_sql(self, request, query, run_query=True):
         rows = url_get_rows(request)
         page = url_get_page(request)
         fullscreen = url_get_fullscreen(request)
@@ -350,7 +371,6 @@ class PlayQueryView(PermissionRequiredMixin, ExplorerContextMixin, View):
                 query,
                 title="Playground",
                 run_query=run_query and form.is_valid(),
-                error=error,
                 rows=rows,
                 page=page,
                 form=form,
@@ -368,7 +388,9 @@ class QueryView(PermissionRequiredMixin, ExplorerContextMixin, View):
         show = url_get_show(request)
         rows = url_get_rows(request)
         page = url_get_page(request)
-        vm = query_viewmodel(request.user, query, form=form, run_query=show, rows=rows, page=page)
+        vm = query_viewmodel(
+            request.user, query, form=form, run_query=show, rows=rows, page=page, method="GET"
+        )
         fullscreen = url_get_fullscreen(request)
         template = 'fullscreen' if fullscreen else 'query'
         return self.render_template('explorer/%s.html' % template, vm)
@@ -405,18 +427,26 @@ def query_viewmodel(
     form=None,
     message=None,
     run_query=True,
-    error=None,
     rows=app_settings.EXPLORER_DEFAULT_ROWS,
     timeout=app_settings.EXPLORER_QUERY_TIMEOUT_MS,
     page=1,
+    method="POST",
+    log=True,
 ):
     res = None
     ql = None
+    error = None
     if run_query:
         try:
-            res, ql = query.execute_with_logging(user, page, rows, timeout)
+            if log:
+                res, ql = query.execute_with_logging(user, page, rows, timeout)
+            else:
+                res = query.execute(page, rows, timeout)
         except DatabaseError as e:
             error = str(e)
+    if error and method == "POST":
+        form.add_error('sql', error)
+        message = "Query error"
     has_valid_results = not error and res and run_query
     ret = {
         'tasks_enabled': app_settings.ENABLE_TASKS,
@@ -426,7 +456,6 @@ def query_viewmodel(
         'query': query,
         'form': form,
         'message': message,
-        'error': error,
         'rows': rows,
         'page': page,
         'data': res.data if has_valid_results else None,
