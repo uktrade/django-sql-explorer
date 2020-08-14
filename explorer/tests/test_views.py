@@ -109,7 +109,7 @@ class TestQueryDetailView(TestCase):
             reverse("query_detail", kwargs={'query_id': query.id}), data={'sql': 'error'}
         )
         self.assertTemplateUsed(resp, 'explorer/query.html')
-        self.assertContains(resp, "Only SELECT/WITH statements are supported")
+        self.assertContains(resp, "Enter a SQL statement starting with SELECT or WITH")
 
     def test_posting_query_saves_correctly(self):
         expected = 'select 2;'
