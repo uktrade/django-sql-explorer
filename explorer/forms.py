@@ -9,7 +9,9 @@ class SqlField(Field):
     def validate(self, value):
         query = value.strip().upper()
         if not any([query.startswith("SELECT"), query.startswith("WITH")]):
-            raise ValidationError("Only SELECT/WITH statements are supported", code="InvalidSql")
+            raise ValidationError(
+                "Enter a SQL statement starting with SELECT or WITH", code="InvalidSql"
+            )
 
 
 class QueryForm(ModelForm):
@@ -17,6 +19,12 @@ class QueryForm(ModelForm):
     sql = SqlField()
     snapshot = BooleanField(widget=CheckboxInput, required=False)
     connection = CharField(widget=Select, required=False)
+    title = CharField(
+        error_messages={
+            'required': 'Enter a title for the query',
+            'max_length': 'The title for the query must be 255 characters or fewer',
+        }
+    )
 
     def __init__(self, *args, **kwargs):
         super(QueryForm, self).__init__(*args, **kwargs)

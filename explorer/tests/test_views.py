@@ -79,12 +79,12 @@ class TestQueryCreateView(TestCase):
 
     def test_valid_query(self):
         self.client.login(username='admin', password='pwd')
-        query = SimpleQueryFactory.build(sql='SELECT * FROM foo;')
+        query = SimpleQueryFactory.build(sql='SELECT 1;')
         data = model_to_dict(query)
         del data['id']
         del data['created_by_user']
         self.client.post(reverse("query_create"), data)
-        self.assertEqual(Query.objects.all()[0].sql, 'SELECT * FROM foo;')
+        self.assertEqual(Query.objects.all()[0].sql, 'SELECT 1;')
 
     def test_invalid_query(self):
         self.client.login(username='admin', password='pwd')
@@ -109,7 +109,7 @@ class TestQueryDetailView(TestCase):
             reverse("query_detail", kwargs={'query_id': query.id}), data={'sql': 'error'}
         )
         self.assertTemplateUsed(resp, 'explorer/query.html')
-        self.assertContains(resp, "Only SELECT/WITH statements are supported")
+        self.assertContains(resp, "Enter a SQL statement starting with SELECT or WITH")
 
     def test_posting_query_saves_correctly(self):
         expected = 'select 2;'
@@ -538,12 +538,12 @@ class TestParamsInViews(TestCase):
         )
         self.assertContains(resp, "123")
 
-    def test_saving_non_executing_query_with__wrong_url_params_works(self):
+    def test_saving_non_executing_query_with__wrong_url_params_fails(self):
         q = SimpleQueryFactory(sql="select $$swap$$;")
         data = model_to_dict(q)
         url = '%s?params=%s' % (reverse("query_detail", kwargs={'query_id': q.id}), 'foo:123')
         resp = self.client.post(url, data)
-        self.assertContains(resp, 'saved')
+        self.assertContains(resp, 'Query error')
 
     def test_users_without_change_permissions_can_use_params(self):
         resp = self.client.get(
