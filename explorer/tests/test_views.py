@@ -538,7 +538,7 @@ class TestParamsInViews(TestCase):
         )
         self.assertContains(resp, "123")
 
-    def test_saving_non_executing_query_with__wrong_url_params_works(self):
+    def test_saving_non_executing_query_with__wrong_url_params_fails(self):
         q = SimpleQueryFactory(sql="select $$swap$$;")
         data = model_to_dict(q)
         url = '%s?params=%s' % (reverse("query_detail", kwargs={'query_id': q.id}), 'foo:123')
