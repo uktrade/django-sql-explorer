@@ -267,7 +267,9 @@ class SQLQuery(object):
     @property
     def count(self):
         if not self._count and self.cursor.db.vendor == POSTGRES_VENDOR:
-            self.cursor.execute(f'select count(*) from ({self.sql}) t')
+            # trim whitespace and semicolons from the end of the query string
+            sql = self.sql.rstrip().rstrip(';')
+            self.cursor.execute(f'select count(*) from ({sql}) t')
             self._count = self.cursor.fetchone()[0]
         return self._count
 
