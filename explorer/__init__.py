@@ -1,4 +1,4 @@
-__version_info__ = {'major': 1, 'minor': 1, 'micro': 6, 'releaselevel': 'final', 'serial': 0}
+__version_info__ = {'major': 1, 'minor': 1, 'micro': 7, 'releaselevel': 'final', 'serial': 0}
 
 
 def get_version(short=False):

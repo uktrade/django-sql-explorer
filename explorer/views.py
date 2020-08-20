@@ -162,7 +162,7 @@ class SchemaView(PermissionRequiredMixin, View):
         if connection not in connections:
             raise Http404
         schema = schema_info(connection)
-        if schema:
+        if schema is not None:
             return render(None, 'explorer/schema.html', {'schema': schema_info(connection)})
         else:
             return render(None, 'explorer/schema_building.html')
